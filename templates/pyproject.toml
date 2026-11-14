@@ -1,0 +1,59 @@
+# Copy these sections into your repo's pyproject.toml and adjust the name.
+# Assumes dev-standards is a git submodule at `.dev-standards` (see README).
+
+[project]
+name = "your-package"
+version = "0.1.0"
+requires-python = ">=3.12,<3.16"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+test = ["pytest>=8", "pytest-cov>=5"]
+lint = ["ruff>=0.8", "interrogate>=1.7", "pip-audit>=2.7"]
+typecheck = ["pyright>=1.1.390"]
+dev = [
+    {include-group = "test"},
+    {include-group = "lint"},
+    {include-group = "typecheck"},
+    "pre-commit>=4",
+]
+
+[tool.ruff]
+extend = ".dev-standards/ruff.toml"
+src = ["src", "tests"]
+
+[tool.ruff.lint.per-file-ignores]
+# Must live in the consuming repo (see the note in ruff.toml).
+"tests/**" = ["S101", "D", "PLR2004", "ARG"]
+"scripts/**" = ["T20", "D"]
+
+# Local overrides go below. Never weaken the shared rules repo-wide.
+
+[tool.pyright]
+include = ["src", "tests"]
+typeCheckingMode = "strict"
+pythonVersion = "3.12"
+
+[tool.interrogate]
+fail-under = 100
+ignore-init-method = true
+ignore-magic = true
+ignore-private = true
+verbose = 1
+exclude = ["tests", "scripts"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-markers"
+
+[tool.coverage.run]
+branch = true
+source_pkgs = ["your_package"]  # package name, so installed (src-layout) code is measured
+
+[tool.coverage.report]
+fail_under = 95
+show_missing = true

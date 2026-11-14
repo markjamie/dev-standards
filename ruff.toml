@@ -1,0 +1,48 @@
+# Shared ruff base for all repos. Consumers add `extend = "<path>/ruff.toml"`
+# to their own config and keep only local overrides.
+# Add new rule families one at a time, running `ruff check` after each.
+
+target-version = "py312"
+line-length = 88
+
+[lint]
+# Explicit families only: never "ALL", which would break every repo on a ruff upgrade.
+select = [
+    # Core
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes
+    "I",        # import sorting
+    "N",        # pep8-naming
+    "UP",       # modern syntax
+    # Correctness and simplicity
+    "B",        # bugbear
+    "BLE",      # blind except
+    "SIM",      # simplify
+    "C4",       # comprehensions
+    "RET",      # return statements
+    "ARG",      # unused arguments
+    "RUF",      # ruff-specific
+    # Standards from STANDARDS.md
+    "PTH",      # pathlib
+    "T20",      # no print
+    "PERF",     # performance
+    "NPY",      # numpy
+    "PD",       # pandas
+    "PT",       # pytest style
+    "PL",       # pylint
+    "TRY",      # exception handling
+    "TC",       # type-checking imports
+    "S",        # security
+    "D",        # docstrings
+]
+# ANN is deliberately omitted: strict pyright already covers annotations.
+ignore = [
+    "D203",  # conflicts with D211
+    "D213",  # conflicts with D212
+]
+
+[lint.pydocstyle]
+convention = "google"
+
+# per-file-ignores are NOT set here: ruff anchors their globs to this file's directory,
+# so they cannot match the extending repo's tests/. See templates/pyproject.toml.
