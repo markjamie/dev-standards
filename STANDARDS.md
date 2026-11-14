@@ -128,6 +128,7 @@ Mechanical rules (formatting, linting, typing) are enforced by tooling; this fil
 - Keep tool versions in the pre-commit config and dependency groups aligned.
 
 ## Git
+- Always make changes on a new branch and merge them into `main` through a pull request. Never commit directly to `main`.
 - Branches created by Claude Code use the prefix `claudecode/`. Branches created by Codex use the prefix `codex/`.
 
 ## Security
