@@ -29,5 +29,5 @@ jobs:
             3.15
           allow-prereleases: true
       - uses: astral-sh/setup-uv@v5
-      - run: uv tool install tox
+      - run: uv tool install tox --with tox-uv
       - run: tox

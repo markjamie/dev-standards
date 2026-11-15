@@ -1,0 +1,37 @@
+# dev-standards' own checks, mirroring templates/tox.toml. It ships no package, so
+# environments install only their dependency group from uv.lock.
+requires = ["tox>=4.22", "tox-uv>=1.25"]
+env_list = ["3.12", "3.13", "3.14", "3.15", "lint", "type", "docstrings", "audit", "licenses"]
+skip_missing_interpreters = false
+
+[env_run_base]
+runner = "uv-venv-lock-runner"
+package = "skip"
+description = "Run tests with coverage"
+dependency_groups = ["test"]
+commands = [["pytest", "--cov", "--cov-report=term-missing", { replace = "posargs", extend = true }]]
+
+[env.lint]
+description = "Ruff lint and format check"
+dependency_groups = ["lint"]
+commands = [["ruff", "check", "."], ["ruff", "format", "--check", "."]]
+
+[env.type]
+description = "Pyright strict type check"
+dependency_groups = ["typecheck", "test"]
+commands = [["pyright"]]
+
+[env.docstrings]
+description = "Docstring coverage"
+dependency_groups = ["lint"]
+commands = [["interrogate", "bootstrap.py", "devstandards"]]
+
+[env.audit]
+description = "Known-vulnerability audit of dependencies"
+dependency_groups = ["lint"]
+commands = [["pip-audit"]]
+
+[env.licenses]
+description = "Fail on GPL-family dependency licences"
+dependency_groups = ["lint"]
+commands = [["pip-licenses", "--partial-match", "--fail-on=GPL"]]
