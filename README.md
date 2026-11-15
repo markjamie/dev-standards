@@ -48,7 +48,9 @@ What needs judgement is left to you and listed under `ACTION NEEDED`:
 - a `tox.ini` (or `[tool.tox]`, or `setup.cfg [tox:tox]`) that hides `tox.toml`: port
   repo-specific environments into `tox.toml`, then delete it;
 - thresholds below the standard: raise them, or record why in `AGENTS.md`;
-- a pre-commit config or `tox.toml` that differs from the template;
+- a pre-commit config that differs from the template, or a `tox.toml` that changes or
+  drops a template setting (adding environments and listing them in `env_list` is
+  fine, and comments and layout are not compared);
 - `setup.py`, `setup.cfg` or setuptools-scm settings that hatchling does not read;
 - an existing `AGENTS.md` whose own rules now repeat or contradict `STANDARDS.md`.
 
@@ -65,7 +67,8 @@ tox
 ```
 
 Then run `python .dev-standards/bootstrap.py` to apply what the new version adds, and
-review `git diff`. `tox.toml` and the pre-commit config only change with `--force`.
+review `git diff`. `tox.toml` and the pre-commit config only change with `--force`,
+which also drops any environments the repo added to `tox.toml`: re-add them after.
 
 ## Develop dev-standards
 
