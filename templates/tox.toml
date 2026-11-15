@@ -4,7 +4,7 @@
 # Add repo-specific environments below; leave ones that need real services (e.g. an
 # integration run) out of env_list so a plain `tox` stays self-contained.
 requires = ["tox>=4.22", "tox-uv>=1.25"]
-env_list = ["3.12", "3.13", "3.14", "3.15", "lint", "type", "docstrings", "audit", "licenses"]
+env_list = ["3.12", "3.13", "3.14", "3.15", "minimum", "lint", "type", "docstrings", "audit", "licenses"]
 skip_missing_interpreters = false
 
 [env_run_base]
@@ -13,6 +13,22 @@ package = "wheel"  # test the built package, not the source tree
 description = "Run tests with coverage"
 dependency_groups = ["test"]
 commands = [["pytest", "--cov", "--cov-report=term-missing", { replace = "posargs", extend = true }]]
+
+[env.minimum]
+description = "Run tests against the lowest versions pyproject.toml allows"
+# Proves the lower bounds are true. uv resolves the package and the test group in a
+# single step with every direct requirement at its floor; installing them separately
+# would let a test tool pull a newer runtime dependency in first. The lock runner is
+# not used, because uv.lock pins the newest versions.
+runner = "uv-venv-runner"
+base_python = ["3.12"]
+skip_install = true
+dependency_groups = []  # installed by commands_pre instead
+allowlist_externals = ["uv"]
+commands_pre = [[
+    "uv", "pip", "install", "--python", "{env_python}",
+    "--resolution", "lowest-direct", "--group", "test", ".",
+]]
 
 [env.lint]
 description = "Ruff lint and format check"

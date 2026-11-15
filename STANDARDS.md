@@ -119,6 +119,7 @@ A task is complete when:
 - Use one group per purpose so each tool installs only what it needs: `test` (pytest and plugins), `lint` (ruff, interrogate, pip-audit, pip-licenses), `typecheck` (pyright) and `docs` where relevant.
 - Add a `dev` group that includes the others (`{include-group = "test"}`, etc.) for a full local environment.
 - Give dependencies sensible lower bounds. Pin exact versions through a lock file, not in `pyproject.toml`.
+- Keep the lower bounds true: the `minimum` tox environment runs the tests with every direct requirement, runtime and test, at its lowest allowed version. When it fails, raise the bound rather than working around the old version.
 - Use `uv` to manage environments, dependencies and the lock file. Commit `uv.lock`, use `uv sync` to set up an environment, and run `uv lock` after changing dependencies (tox fails on a stale lock).
 - Prefer permissive licences (MIT, BSD, Apache-2.0, PSF). Avoid GPL-family dependencies unless the user has approved them.
 
@@ -129,7 +130,7 @@ A task is complete when:
   - `interrogate` for docstring coverage.
   - `pip-audit` and `pip-licenses` for vulnerability and licence checks.
   - `pytest` across all supported Python versions via `tox`.
-- `tox` is the single entry point: one `tox` run executes tests on 3.12 to 3.15 and runs the lint, type, docstring, audit and licence checks, so local runs match CI.
+- `tox` is the single entry point: one `tox` run executes tests on 3.12 to 3.15 and at the minimum dependency versions, and runs the lint, type, docstring, audit and licence checks, so local runs match CI.
 - `tox` environments install tools from the dependency groups via `dependency_groups`, using tox-uv's `uv-venv-lock-runner`, so every environment gets the versions pinned in `uv.lock`. This needs tox 4.22 and tox-uv 1.25 or later (`uv tool install tox --with tox-uv`).
 - Repo-specific environments (packaging checks, integration runs) go in the repo's `tox.toml`. Leave any that need real services or credentials out of `env_list`, so a plain `tox` stays self-contained, and record them in `AGENTS.md`.
 - Do not keep a `tox.ini`, a `[tox:tox]` section in `setup.cfg` or a `[tool.tox]` table in `pyproject.toml`: tox reads each of them ahead of `tox.toml`.
