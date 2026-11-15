@@ -33,6 +33,7 @@ A task is complete when:
 - Support Python 3.12 to 3.15. Set `requires-python = ">=3.12,<3.16"` in `pyproject.toml`.
 - Write for the oldest supported version (3.12). Do not use syntax or stdlib features newer than 3.12 unless guarded for compatibility. The `type` statement and PEP 695 generics are fine.
 - Every supported version is tested via `tox` (see Tooling).
+- A `.python-version` file, if present, names a minor version (`3.12`), never a patch release, so `uv sync` works with whichever patch is installed.
 
 # Code
 
@@ -58,7 +59,7 @@ A task is complete when:
 - Use `pydantic` models where data crosses a boundary or needs validation: config files, API payloads, parsed input, serialisation. Use plain dataclasses for internal data that is already trusted, since they are lighter and faster.
 - One-line docstring on every public module, class and function stating *why* it exists. Add Google-style Args/Returns/Raises sections only when not obvious from the types: non-obvious units or constraints, exceptions callers should handle, and public API that library users read. Docstring coverage is enforced by `interrogate`.
 - Comment *why*, not *what*. Document important assumptions and non-obvious decisions.
-- Use British English in code, comments, docstrings and documentation.
+- Use British English in code, comments, docstrings and documentation. Existing public names keep their spelling: renaming one is a breaking change, so leave it for a planned major release.
 
 ## Naming and constants
 - Descriptive, unambiguous names (`activity_bq_per_g`, not `x2`).
@@ -81,7 +82,7 @@ A task is complete when:
 - Make behaviour configurable via arguments or a config object, not hard-coded.
 - Define a small custom exception hierarchy per package, with one base exception that the others inherit from, so callers can catch precisely.
 - Libraries log but never configure logging. Handlers, levels and formats are set only at the application entry point.
-- Use `logging.getLogger(__name__)` in every module.
+- Every module that logs gets its own `logging.getLogger(__name__)`. Do not pass loggers between functions.
 
 ## Scientific code
 - Seed all randomness explicitly and make the seed configurable, so results are reproducible.
@@ -98,7 +99,7 @@ A task is complete when:
 - Use unit tests for logic and integration tests for module and I/O boundaries.
 - Use Hypothesis where properties or wide input ranges make it worthwhile, such as parsers and numerical routines.
 - Test behaviour at module boundaries, not private implementation details.
-- Mirror the source layout: `tests/` follows `src/<package>/`, with one test module per source module (`foo.py` is tested in `test_foo.py`).
+- Mirror the source layout: `tests/` follows `src/<package>/`, with one test module per source module that has behaviour of its own (`foo.py` is tested in `test_foo.py`). Modules that only declare data, such as exceptions, models or constants, may be covered through the tests of the code that uses them.
 - Put shared fixtures in `conftest.py`, scoped as narrowly as possible.
 - Use `pytest.mark.parametrize` rather than copy-pasted test cases.
 - Measure coverage with `coverage` (via `pytest-cov`), including branch coverage. The template sets `fail_under = 95`, which a repo may change in its own `[tool.coverage.report]`. Record the reason in the repo's `AGENTS.md`, and never lower it just to pass a build.
@@ -115,10 +116,10 @@ A task is complete when:
 - Use a `src/` layout so tests always run against the installed package, not the working directory.
 - Runtime dependencies go in `[project.dependencies]`. Use `[project.optional-dependencies]` only for extras that end users install.
 - Development dependencies go in PEP 735 `[dependency-groups]`, not in extras or `requirements*.txt` files.
-- Use one group per purpose so each tool installs only what it needs: `test` (pytest and plugins), `lint` (ruff, interrogate), `typecheck` (pyright) and `docs` where relevant.
+- Use one group per purpose so each tool installs only what it needs: `test` (pytest and plugins), `lint` (ruff, interrogate, pip-audit, pip-licenses), `typecheck` (pyright) and `docs` where relevant.
 - Add a `dev` group that includes the others (`{include-group = "test"}`, etc.) for a full local environment.
 - Give dependencies sensible lower bounds. Pin exact versions through a lock file, not in `pyproject.toml`.
-- Use `uv` to manage environments, dependencies and the lock file. Commit `uv.lock`, and use `uv sync` to set up an environment.
+- Use `uv` to manage environments, dependencies and the lock file. Commit `uv.lock`, use `uv sync` to set up an environment, and run `uv lock` after changing dependencies (tox fails on a stale lock).
 - Prefer permissive licences (MIT, BSD, Apache-2.0, PSF). Avoid GPL-family dependencies unless the user has approved them.
 
 ## Tooling
@@ -129,7 +130,9 @@ A task is complete when:
   - `pip-audit` and `pip-licenses` for vulnerability and licence checks.
   - `pytest` across all supported Python versions via `tox`.
 - `tox` is the single entry point: one `tox` run executes tests on 3.12 to 3.15 and runs the lint, type, docstring, audit and licence checks, so local runs match CI.
-- `tox` environments install tools from the dependency groups via `dependency_groups = test` (etc.), so tool versions are defined once in `pyproject.toml`. This needs tox 4.22 or later.
+- `tox` environments install tools from the dependency groups via `dependency_groups`, using tox-uv's `uv-venv-lock-runner`, so every environment gets the versions pinned in `uv.lock`. This needs tox 4.22 and tox-uv 1.25 or later (`uv tool install tox --with tox-uv`).
+- Repo-specific environments (packaging checks, integration runs) go in the repo's `tox.toml`. Leave any that need real services or credentials out of `env_list`, so a plain `tox` stays self-contained, and record them in `AGENTS.md`.
+- Do not keep a `tox.ini`, a `[tox:tox]` section in `setup.cfg` or a `[tool.tox]` table in `pyproject.toml`: tox reads each of them ahead of `tox.toml`.
 - Shared config lives in the `dev-standards` repo. Repos extend it and keep only local overrides.
 
 ## Ruff rules
@@ -145,17 +148,17 @@ A task is complete when:
 - Docstring convention is `google`. Ignore `D203` and `D213`, which conflict with `D211` and `D212`.
 - Do not select `ANN`: strict pyright already covers annotations.
 - Use `per-file-ignores` for tests and scripts (e.g. `S101`, `D`, `PLR2004` in `tests/**`), not repo-wide ignores.
+- Add local rule families with `extend-select`. A local `select` replaces the shared list instead of adding to it.
 - Add new rule families one at a time, running `ruff check` after each.
 
 ## Pre-commit and CI
-- Every repo has a `.pre-commit-config.yaml` running `ruff` (lint and format), `pyright` and `interrogate`, so problems are caught before commit.
+- Every repo has a `.pre-commit-config.yaml` running `ruff` (lint and format), `pyright` and `interrogate`, so problems are caught before commit. The hooks are `local` and run through `uv run`, so their versions come from `uv.lock`, as tox's do.
 - CI is a GitHub Actions workflow (`.github/workflows/ci.yml`) that runs `tox` and nothing else, so CI and local runs are identical. CI fails on any tox failure, including the coverage threshold.
-- Keep tool versions in the pre-commit config and dependency groups aligned.
 
 ## Git
 - Use focused commits, each doing one thing.
 - Always make changes on a new branch and merge them into `main` through a pull request. Never commit directly to `main`.
-- Branches created by Claude Code use the prefix `claudecode/`. Branches created by Codex use the prefix `codex/`.
+- Branches created by Claude Code use the prefix `claude/`, which Claude Code cloud sessions assign. Branches created by Codex use the prefix `codex/`.
 
 ## Security
 - Never commit secrets (API keys, passwords, tokens, credentials). Load them from the environment or a secrets manager, and keep any local `.env` files in `.gitignore`. Do not log sensitive data.

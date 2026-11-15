@@ -1,10 +1,15 @@
 # Single entry point: `tox` runs tests on every supported Python plus all checks.
-# Tool versions come from the pyproject dependency groups (needs tox >= 4.22).
-requires = ["tox>=4.22"]
+# tox-uv's lock runner installs each dependency group from uv.lock, so tox, pre-commit
+# and CI use the same tool versions. Run `uv lock` after changing dependencies.
+# Add repo-specific environments below; leave ones that need real services (e.g. an
+# integration run) out of env_list so a plain `tox` stays self-contained.
+requires = ["tox>=4.22", "tox-uv>=1.25"]
 env_list = ["3.12", "3.13", "3.14", "3.15", "lint", "type", "docstrings", "audit", "licenses"]
 skip_missing_interpreters = false
 
 [env_run_base]
+runner = "uv-venv-lock-runner"
+package = "wheel"  # test the built package, not the source tree
 description = "Run tests with coverage"
 dependency_groups = ["test"]
 commands = [["pytest", "--cov", "--cov-report=term-missing", { replace = "posargs", extend = true }]]
@@ -24,7 +29,7 @@ commands = [["pyright"]]
 description = "Docstring coverage"
 dependency_groups = ["lint"]
 skip_install = true
-commands = [["interrogate"]]
+commands = [["interrogate", "src"]]
 
 [env.audit]
 description = "Known-vulnerability audit of dependencies"

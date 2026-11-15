@@ -21,7 +21,7 @@ repos:
         pass_filenames: false
       - id: interrogate
         name: interrogate
-        entry: uv run interrogate
+        entry: uv run interrogate src
         language: system
         types: [python]
         pass_filenames: false

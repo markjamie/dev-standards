@@ -4,6 +4,9 @@
 
 target-version = "py312"
 line-length = 88
+# The submodule is not the consuming repo's code. The pattern is unanchored, so it
+# matches the submodule's directory wherever ruff walks into it.
+extend-exclude = [".dev-standards"]
 
 [lint]
 # Explicit families only: never "ALL", which would break every repo on a ruff upgrade.
@@ -50,4 +53,5 @@ max-complexity = 10
 convention = "google"
 
 # per-file-ignores are NOT set here: ruff anchors their globs to this file's directory,
-# so they cannot match the extending repo's tests/. See templates/pyproject.toml.
+# so they cannot match the extending repo's tests/.
+# See templates/pyproject.template.toml.

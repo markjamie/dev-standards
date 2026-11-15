@@ -1,4 +1,4 @@
-# Copy these sections into your repo's pyproject.toml and adjust the name.
+# Sections for your repo's pyproject.toml: bootstrap.py appends any you lack.
 # Assumes dev-standards is a git submodule at `.dev-standards` (see README).
 
 [project]
@@ -28,7 +28,8 @@ src = ["src", "tests"]
 
 [tool.ruff.lint.per-file-ignores]
 # Must live in the consuming repo (see the note in ruff.toml).
-"tests/**" = ["S101", "D", "PLR2004", "ARG"]
+# Tests use fake paths, secrets and errors as data: S105/S106/S108/TRY003 are noise.
+"tests/**" = ["S101", "S105", "S106", "S108", "D", "PLR2004", "ARG", "TRY003"]
 "scripts/**" = ["T20", "D"]
 
 # Local overrides go below. Never weaken the shared rules repo-wide.
@@ -39,12 +40,13 @@ typeCheckingMode = "strict"
 pythonVersion = "3.12"
 
 [tool.interrogate]
+# Run as `interrogate src` (tox and pre-commit do): a bare `interrogate` scans the whole
+# repo, including the submodule and any virtual environments.
 fail-under = 100
 ignore-init-method = true
 ignore-magic = true
 ignore-private = true
 verbose = 1
-exclude = ["tests", "scripts"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
