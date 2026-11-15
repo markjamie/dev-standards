@@ -1,0 +1,32 @@
+# Single entry point: `tox` runs tests on every supported Python plus all checks.
+# Tool versions come from the pyproject dependency groups (needs tox >= 4.22).
+requires = ["tox>=4.22"]
+env_list = ["3.12", "3.13", "3.14", "3.15", "lint", "type", "docstrings", "audit"]
+skip_missing_interpreters = false
+
+[env_run_base]
+description = "Run tests with coverage"
+dependency_groups = ["test"]
+commands = [["pytest", "--cov", "--cov-report=term-missing", { replace = "posargs", extend = true }]]
+
+[env.lint]
+description = "Ruff lint and format check"
+dependency_groups = ["lint"]
+skip_install = true
+commands = [["ruff", "check", "."], ["ruff", "format", "--check", "."]]
+
+[env.type]
+description = "Pyright strict type check"
+dependency_groups = ["typecheck", "test"]
+commands = [["pyright"]]
+
+[env.docstrings]
+description = "Docstring coverage"
+dependency_groups = ["lint"]
+skip_install = true
+commands = [["interrogate"]]
+
+[env.audit]
+description = "Known-vulnerability audit of dependencies"
+dependency_groups = ["lint"]
+commands = [["pip-audit"]]
