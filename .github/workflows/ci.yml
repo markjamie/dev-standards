@@ -1,0 +1,32 @@
+# dev-standards' own CI; mirrors templates/.github/workflows/ci.yml.
+# Runs tox and nothing else, so CI matches local runs. The weekly schedule
+# re-runs pip-audit so new vulnerabilities surface even when the code is unchanged.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tox:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: |
+            3.12
+            3.13
+            3.14
+            3.15
+          allow-prereleases: true
+      - uses: astral-sh/setup-uv@v5
+      - run: uv tool install tox --with tox-uv
+      - run: tox

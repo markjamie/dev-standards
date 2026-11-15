@@ -1,0 +1,7 @@
+# This repo's own ruff config. Ruff reads .ruff.toml ahead of ruff.toml, so consuming
+# repos, which extend ruff.toml directly, never see these per-file-ignores.
+extend = "ruff.toml"
+src = [".", "tests"]
+
+[lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106", "S108", "S603", "D", "PLR2004", "ARG", "TRY003"]

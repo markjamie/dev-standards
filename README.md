@@ -5,15 +5,15 @@ Shared development standards and tooling config. Read [STANDARDS.md](STANDARDS.m
 | Path | Purpose | How repos use it |
 |------|---------|------------------|
 | `ruff.toml` | Shared ruff rules | Extended by reference |
-| `templates/pyproject.template.toml` | Dependency groups, strict pyright, coverage, interrogate | Copy sections |
-| `templates/tox.toml` | Tests on 3.12-3.15, lint, type, docstring, audit and licence envs, installed from `uv.lock` | Copy |
-| `templates/.pre-commit-config.yaml` | ruff, pyright, interrogate hooks via `uv run` | Copy |
-| `templates/AGENTS.md` | Canonical agent instructions; imports `STANDARDS.md` | Copy, then add repo rules |
-| `templates/CLAUDE.md` | One-line shim importing `AGENTS.md` for Claude Code | Copy |
-| `templates/.github/workflows/ci.yml` | Runs `tox` on push, PR and weekly | Copy |
+| `templates/pyproject.template.toml` | Build backend, dependency groups, ruff, strict pyright, coverage, interrogate | Merged |
+| `templates/tox.toml` | Tests on 3.12-3.15, lint, type, docstring, audit and licence envs, installed from `uv.lock` | Copied; replaced with `--force` |
+| `templates/.pre-commit-config.yaml` | ruff, pyright, interrogate hooks via `uv run` | Copied; replaced with `--force` |
+| `templates/AGENTS.md` | Canonical agent instructions; imports `STANDARDS.md` | Import added; repo rules kept |
+| `templates/CLAUDE.md` | One-line shim importing `AGENTS.md` for Claude Code | Created if missing |
+| `templates/.github/workflows/ci.yml` | Runs `tox` on push, PR and weekly | Replaced on every run |
 | `templates/.gitignore` | Caches, environments, coverage output, secrets files | Merged |
 | `templates/CHANGELOG.md` | Empty Keep a Changelog file | Created if missing |
-| `bootstrap.py` | Applies all of the above, then reports what still differs | Run once; `--check` any time |
+| `bootstrap.py` and `devstandards/` | Apply all of the above, then report what still differs | Run once; `--check` any time |
 
 ## Adopt in a repo
 
@@ -31,16 +31,25 @@ and exits non-zero while any gap remains.
 
 ### Existing repos
 
-The bootstrap never edits what a repo already has: it appends missing `pyproject.toml`
-tables, adds missing `.gitignore` patterns and keeps every other existing file. Expect
-the list to include:
+The bootstrap makes the mechanical changes itself and keeps comments and layout in
+`pyproject.toml` outside the tables it edits:
+
+- swaps a setuptools build backend for hatchling and deletes the `[tool.setuptools]`
+  tables (hatchling finds a `src/<package>` layout without configuration);
+- adds missing tables, dependency groups and tools, keeping existing version bounds
+  (comments inside `[dependency-groups]` are not kept when it is rewritten);
+- points ruff at `ruff.toml`, turns a local `select` into `extend-select`, and adds the
+  template's `per-file-ignores` for paths the repo does not already configure;
+- replaces the CI workflow, since CI runs `tox` and nothing else;
+- reduces `.python-version` patch pins to minor versions, and merges `.gitignore`.
+
+What needs judgement is left to you and listed under `ACTION NEEDED`:
 
 - a `tox.ini` (or `[tool.tox]`, or `setup.cfg [tox:tox]`) that hides `tox.toml`: port
   repo-specific environments into `tox.toml`, then delete it;
-- a local ruff `select`, which replaces the shared rules: switch to `extend-select`;
-- missing dependency groups or tools, which make the matching tox environments fail;
-- thresholds or settings weaker than the standard, and a non-hatchling build backend;
-- a CI workflow or pre-commit config that differs from the template;
+- thresholds below the standard: raise them, or record why in `AGENTS.md`;
+- a pre-commit config or `tox.toml` that differs from the template;
+- `setup.py`, `setup.cfg` or setuptools-scm settings that hatchling does not read;
 - an existing `AGENTS.md` whose own rules now repeat or contradict `STANDARDS.md`.
 
 Turning on the shared ruff rules usually surfaces new findings. Fix them, or add a
@@ -55,9 +64,20 @@ git commit -m "Update dev-standards"
 tox
 ```
 
-Then run `python .dev-standards/bootstrap.py --check` to see what the new version asks
-for. Copied files (`tox.toml`, pre-commit config, CI workflow) only change with
-`python .dev-standards/bootstrap.py --force`. Review `git diff` afterwards.
+Then run `python .dev-standards/bootstrap.py` to apply what the new version adds, and
+review `git diff`. `tox.toml` and the pre-commit config only change with `--force`.
+
+## Develop dev-standards
+
+```bash
+uv sync
+tox
+```
+
+`bootstrap.py` is a thin entry point; the logic lives in `devstandards/`, tested under
+`tests/`. It uses only the standard library, because it runs before a repo's
+environment exists. Its own ruff settings are in `.ruff.toml`, which ruff reads ahead
+of the shared `ruff.toml`, so consuming repos never inherit them.
 
 ## Why these choices
 

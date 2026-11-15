@@ -107,10 +107,10 @@ A task is complete when:
 
 ## Dependencies
 - All project metadata and dependencies live in `pyproject.toml`.
-- Use `hatchling` as the build backend:
+- Use `hatchling` as the build backend, never setuptools. `bootstrap.py` replaces a setuptools backend automatically:
   ```toml
   [build-system]
-  requires = ["hatchling"]
+  requires = ["hatchling>=1.27"]
   build-backend = "hatchling.build"
   ```
 - Use a `src/` layout so tests always run against the installed package, not the working directory.
@@ -154,6 +154,7 @@ A task is complete when:
 ## Pre-commit and CI
 - Every repo has a `.pre-commit-config.yaml` running `ruff` (lint and format), `pyright` and `interrogate`, so problems are caught before commit. The hooks are `local` and run through `uv run`, so their versions come from `uv.lock`, as tox's do.
 - CI is a GitHub Actions workflow (`.github/workflows/ci.yml`) that runs `tox` and nothing else, so CI and local runs are identical. CI fails on any tox failure, including the coverage threshold.
+- The workflow is the template, unmodified: `bootstrap.py` replaces it on every run, so repos have no CI-specific jobs or exceptions. Anything CI should run goes in `tox.toml`.
 
 ## Git
 - Use focused commits, each doing one thing.
