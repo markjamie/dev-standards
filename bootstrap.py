@@ -23,8 +23,15 @@ TEMPLATES_DIR = STANDARDS_DIR / "templates"
 TEMPLATE_CHECKOUT_PATH = ".dev-standards"  # where the templates assume the submodule is
 PLACEHOLDER_DASHED = "your-package"
 PLACEHOLDER_MODULE = "your_package"
-COPIED_FILES = ("tox.toml", ".pre-commit-config.yaml")
-CLAUDE_FILE = "CLAUDE.md"
+COPIED_FILES = (
+    "tox.toml",
+    ".pre-commit-config.yaml",
+    ".gitignore",
+    ".github/workflows/ci.yml",
+)
+AGENTS_FILE = "AGENTS.md"  # canonical agent instructions
+CLAUDE_FILE = "CLAUDE.md"  # thin shim importing AGENTS.md
+AGENTS_IMPORT = "@AGENTS.md"
 PYPROJECT_FILE = "pyproject.toml"
 STANDARDS_IMPORT = "@{path}/STANDARDS.md"
 TABLE_HEADER = re.compile(r"^\[([^\[\]]+)\]\s*$", re.MULTILINE)
@@ -105,26 +112,26 @@ def copy_template(root: Path, name: str, package: str, *, force: bool) -> bool:
         LOGGER.info("kept existing %s (use --force to overwrite)", name)
         return False
     text = (TEMPLATES_DIR / name).read_text(encoding="utf-8")
+    destination.parent.mkdir(parents=True, exist_ok=True)
     destination.write_text(_render(text, _checkout_path(root), package), "utf-8")
     LOGGER.info("wrote %s", name)
     return True
 
 
-def ensure_claude_import(root: Path) -> None:
-    """Make sure CLAUDE.md imports STANDARDS.md, preserving any existing content."""
-    destination = root / CLAUDE_FILE
-    import_line = STANDARDS_IMPORT.format(path=_checkout_path(root))
+def ensure_import(root: Path, name: str, import_line: str) -> None:
+    """Make sure an agent file contains an import line, preserving existing content."""
+    destination = root / name
     if not destination.exists():
-        text = (TEMPLATES_DIR / CLAUDE_FILE).read_text(encoding="utf-8")
+        text = (TEMPLATES_DIR / name).read_text(encoding="utf-8")
         destination.write_text(_render(text, _checkout_path(root), ""), "utf-8")
-        LOGGER.info("wrote %s", CLAUDE_FILE)
+        LOGGER.info("wrote %s", name)
         return
     existing = destination.read_text(encoding="utf-8")
     if import_line in existing:
-        LOGGER.info("%s already imports STANDARDS.md", CLAUDE_FILE)
+        LOGGER.info("%s already contains %s", name, import_line)
         return
     destination.write_text(f"{import_line}\n\n{existing}", encoding="utf-8")
-    LOGGER.info("prepended the STANDARDS.md import to %s", CLAUDE_FILE)
+    LOGGER.info("prepended %s to %s", import_line, name)
 
 
 def merge_pyproject(root: Path) -> str:
@@ -166,6 +173,18 @@ def _warn_if_ruff_not_extended(pyproject: dict[str, Any], checkout_path: str) ->
         )
 
 
+def _warn_if_claude_has_content(root: Path) -> None:
+    """Warn when CLAUDE.md holds more than the shim, since AGENTS.md is canonical."""
+    lines = (root / CLAUDE_FILE).read_text(encoding="utf-8").split()
+    if lines != [AGENTS_IMPORT]:
+        LOGGER.warning(
+            "ACTION NEEDED: move repo-specific rules from %s into %s, leaving only %s",
+            CLAUDE_FILE,
+            AGENTS_FILE,
+            AGENTS_IMPORT,
+        )
+
+
 def install_environment(root: Path) -> None:
     """Sync the dev environment and install the git hooks."""
     uv = shutil.which("uv")
@@ -195,7 +214,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         package = merge_pyproject(root)
         for name in COPIED_FILES:
             copy_template(root, name, package, force=args.force)
-        ensure_claude_import(root)
+        ensure_import(
+            root, AGENTS_FILE, STANDARDS_IMPORT.format(path=_checkout_path(root))
+        )
+        ensure_import(root, CLAUDE_FILE, AGENTS_IMPORT)
+        _warn_if_claude_has_content(root)
         if not args.no_install:
             install_environment(root)
     except BootstrapError as error:
