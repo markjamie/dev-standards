@@ -19,12 +19,14 @@ select = [
     "BLE",      # blind except
     "SIM",      # simplify
     "C4",       # comprehensions
+    "C90",      # mccabe complexity
     "RET",      # return statements
     "ARG",      # unused arguments
     "RUF",      # ruff-specific
     # Standards from STANDARDS.md
     "PTH",      # pathlib
     "T20",      # no print
+    "DTZ",      # timezone-aware datetimes
     "PERF",     # performance
     "NPY",      # numpy
     "PD",       # pandas
@@ -40,6 +42,9 @@ ignore = [
     "D203",  # conflicts with D211
     "D213",  # conflicts with D212
 ]
+
+[lint.mccabe]
+max-complexity = 10
 
 [lint.pydocstyle]
 convention = "google"

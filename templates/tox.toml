@@ -1,7 +1,7 @@
 # Single entry point: `tox` runs tests on every supported Python plus all checks.
 # Tool versions come from the pyproject dependency groups (needs tox >= 4.22).
 requires = ["tox>=4.22"]
-env_list = ["3.12", "3.13", "3.14", "3.15", "lint", "type", "docstrings", "audit"]
+env_list = ["3.12", "3.13", "3.14", "3.15", "lint", "type", "docstrings", "audit", "licenses"]
 skip_missing_interpreters = false
 
 [env_run_base]
@@ -30,3 +30,8 @@ commands = [["interrogate"]]
 description = "Known-vulnerability audit of dependencies"
 dependency_groups = ["lint"]
 commands = [["pip-audit"]]
+
+[env.licenses]
+description = "Fail on GPL-family dependency licences"
+dependency_groups = ["lint"]
+commands = [["pip-licenses", "--partial-match", "--fail-on=GPL"]]
