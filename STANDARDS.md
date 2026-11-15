@@ -136,6 +136,7 @@ A task is complete when:
 - Select an explicit list of rule families. Do not use `select = ["ALL"]`: it adds new rules on every ruff upgrade and would break CI across repos at once.
 - Keep the list grouped and commented in the shared `ruff.toml`. Repos extend it and add only local overrides.
 - Set `target-version = "py312"` and `line-length = 88`.
+- Use double quotes. This is `ruff format`'s default, so leave `quote-style` unset.
 - Selected families:
   - Core: `E`, `W`, `F`, `I` (imports), `N` (naming), `UP` (modern syntax)
   - Correctness and simplicity: `B`, `BLE`, `SIM`, `C4`, `C90` (complexity), `RET`, `ARG`, `RUF`
