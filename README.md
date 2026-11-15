@@ -6,7 +6,7 @@ Shared development standards and tooling config. Read [STANDARDS.md](STANDARDS.m
 |------|---------|------------------|
 | `ruff.toml` | Shared ruff rules | Extended by reference |
 | `templates/pyproject.template.toml` | Build backend, dependency groups, ruff, strict pyright, coverage, interrogate | Merged |
-| `templates/tox.toml` | Tests on 3.12-3.15, lint, type, docstring, audit and licence envs, installed from `uv.lock` | Copied; replaced with `--force` |
+| `templates/tox.toml` | Tests on 3.12-3.15 and at minimum dependency versions, lint, type, docstring, audit and licence envs | Copied; replaced with `--force` |
 | `templates/.pre-commit-config.yaml` | ruff, pyright, interrogate hooks via `uv run` | Copied; replaced with `--force` |
 | `templates/AGENTS.md` | Canonical agent instructions; imports `STANDARDS.md` | Import added; repo rules kept |
 | `templates/CLAUDE.md` | One-line shim importing `AGENTS.md` for Claude Code | Created if missing |
