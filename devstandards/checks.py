@@ -48,6 +48,10 @@ HATCH_PACKAGE_KEYS = (
 )
 PER_FILE_IGNORES = "tool.ruff.lint.per-file-ignores"
 TOX_INI = "tox.ini"
+TOX_FILE = "tox.toml"
+# The parts of tox.toml a repo may extend: it adds environments and lists them.
+TOX_ENV_LIST = "env_list"
+TOX_ENVS = "env"
 
 
 @dataclass(frozen=True)
@@ -175,15 +179,56 @@ def check_tox_config(state: RepoState) -> Iterator[str]:
         )
 
 
+def tox_departures(repo: dict[str, Any], template: dict[str, Any]) -> list[str]:
+    """Return the template settings a repo's tox config changes or drops.
+
+    A repo may add its own environments and append them to env_list, so only what
+    the template sets is compared. Comments and layout are not.
+    """
+    departures = [
+        key
+        for key, value in template.items()
+        if key not in (TOX_ENV_LIST, TOX_ENVS) and repo.get(key) != value
+    ]
+    repo_envs = lookup_table(repo, TOX_ENVS)
+    departures += [
+        f"{TOX_ENVS}.{name}"
+        for name, settings in lookup_table(template, TOX_ENVS).items()
+        if repo_envs.get(name) != settings
+    ]
+    if not set(lookup_list(template, TOX_ENV_LIST)) <= set(
+        lookup_list(repo, TOX_ENV_LIST)
+    ):
+        departures.append(TOX_ENV_LIST)
+    return departures
+
+
+def _tox_gaps(text: str, template_text: str, remedy: str) -> Iterator[str]:
+    """Report where tox.toml departs from the template, ignoring repo additions."""
+    try:
+        repo = tomllib.loads(text)
+    except tomllib.TOMLDecodeError as error:
+        yield f"{TOX_FILE} is not valid TOML: {error}"
+        return
+    departures = tox_departures(repo, tomllib.loads(template_text))
+    if departures:
+        yield (
+            f"{TOX_FILE} differs from the template in {', '.join(departures)}: {remedy}"
+        )
+
+
 def check_template_files(state: RepoState) -> Iterator[str]:
     """Report copied or managed files that are missing or differ from the template."""
     remedies = dict.fromkeys(COPIED_FILES, "merge by hand, or use --force")
     remedies |= dict.fromkeys(MANAGED_FILES, "rerun bootstrap.py to replace it")
     for name, remedy in remedies.items():
         path = state.root / name
+        expected = render_template(name, state.checkout, state.package)
         if not path.exists():
             yield f"{name} is missing"
-        elif read_text(path) != render_template(name, state.checkout, state.package):
+        elif name == TOX_FILE:
+            yield from _tox_gaps(read_text(path), expected, remedy)
+        elif read_text(path) != expected:
             yield f"{name} differs from the template: {remedy}"
 
 

@@ -133,7 +133,8 @@ class TestFiles:
             ("CLAUDE.md", "@AGENTS.md\nMore rules\n", "move rules from CLAUDE.md"),
             ("AGENTS.md", "# No import\n", "AGENTS.md does not import"),
             (".gitignore", "", ".gitignore lacks"),
-            ("tox.toml", "", "tox.toml differs from the template: merge by hand"),
+            ("tox.toml", "", "tox.toml differs from the template in requires,"),
+            ("tox.toml", "env_list = [", "tox.toml is not valid TOML"),
             (".github/workflows/ci.yml", "", "rerun bootstrap.py to replace it"),
         ],
     )
@@ -142,6 +143,42 @@ class TestFiles:
     ) -> None:
         (conforming / name).write_text(content, encoding="utf-8")
         assert any(expected in gap for gap in gaps(conforming)), gaps(conforming)
+
+    def test_tox_toml_may_add_environments(self, conforming: Path) -> None:
+        tox_toml = conforming / "tox.toml"
+        edit(tox_toml, '"licenses"]', '"licenses", "integration"]')
+        append(tox_toml, '\n[env.integration]\ncommands = [["pytest", "-m", "slow"]]\n')
+        append(tox_toml, '\n[env.manual]\ncommands = [["pytest"]]\n')
+        assert gaps(conforming) == []
+
+    def test_tox_toml_ignores_comments_and_layout(self, conforming: Path) -> None:
+        tox_toml = conforming / "tox.toml"
+        tox_toml.write_text(
+            "# Local notes\n"
+            + tox_toml.read_text(encoding="utf-8").replace(
+                "skip_missing_interpreters = false", "skip_missing_interpreters=false"
+            ),
+            encoding="utf-8",
+        )
+        assert gaps(conforming) == []
+
+    @pytest.mark.parametrize(
+        ("old", "new", "departure"),
+        [
+            ('"lint", ', "", "env_list"),
+            ('package = "wheel"', 'package = "skip"', "env_run_base"),
+            ('[["pyright"]]', '[["pyright", "src"]]', "env.type"),
+            ('"tox-uv>=1.25"', '"tox-uv>=1.12"', "requires"),
+        ],
+    )
+    def test_tox_toml_must_keep_template_settings(
+        self, conforming: Path, old: str, new: str, departure: str
+    ) -> None:
+        edit(conforming / "tox.toml", old, new)
+        assert gaps(conforming) == [
+            f"tox.toml differs from the template in {departure}: "
+            "merge by hand, or use --force"
+        ]
 
     def test_tool_tox_table_hides_tox_toml(self, conforming: Path) -> None:
         append(conforming / "pyproject.toml", "\n[tool.tox]\nenv_list = []\n")
