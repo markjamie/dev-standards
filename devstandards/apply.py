@@ -12,7 +12,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from devstandards import dependency_groups, gitignore
+from devstandards import dependency_groups, gitignore, ruff_config
 from devstandards.errors import BootstrapError
 from devstandards.layout import (
     AGENTS_FILE,
@@ -36,6 +36,8 @@ from devstandards.toml_text import (
     append_table,
     lookup,
     lookup_table,
+    remove_array_items,
+    remove_key,
     remove_tables,
     rename_key,
     replace_table,
@@ -53,6 +55,9 @@ SETUPTOOLS_TABLE = "tool.setuptools"
 BUILD_SYSTEM_TABLE = "build-system"
 RUFF_TABLES = ("tool.ruff.lint", "tool.ruff")  # select may sit in either
 PER_FILE_IGNORES = "tool.ruff.lint.per-file-ignores"
+PYRIGHT_TABLE = "tool.pyright"
+# Pin pyright to one environment, so `tox -e type` would not check its own.
+PYRIGHT_VENV_KEYS = ("venvPath", "venv")
 INDENT = re.compile(r"^([ \t]+)\S", re.MULTILINE)  # reuse the repo's array indent
 
 # Each takes (repo pyproject text, rendered template text) and returns the new text.
@@ -146,11 +151,40 @@ def _add_per_file_ignores(text: str, expected: dict[str, Any]) -> str:
     return add_lines(text, PER_FILE_IGNORES, lines)
 
 
+def drop_redundant_ruff_settings(text: str, template: str) -> str:  # noqa: ARG001  # a Transform
+    """Remove ruff settings and rule entries the shared ruff.toml already provides.
+
+    Settings written as dotted keys rather than under their own table header are
+    left alone, and reported by the checks instead.
+    """
+    shared = ruff_config.load_shared()
+    for found in ruff_config.redundant_settings(tomllib.loads(text), shared):
+        if found.entries:
+            text = remove_array_items(text, found.table, found.key, found.entries)
+            removed = f"{', '.join(found.entries)} from {found.setting}"
+        else:
+            text = remove_key(text, found.table, found.key)
+            removed = found.setting
+        LOGGER.info("pyproject.toml: removed %s, which the shared rules set", removed)
+    return text
+
+
+def drop_pyright_venv(text: str, template: str) -> str:  # noqa: ARG001  # a Transform
+    """Remove the pyright settings that pin it to one virtual environment."""
+    for key in PYRIGHT_VENV_KEYS:
+        if lookup(tomllib.loads(text), f"{PYRIGHT_TABLE}.{key}") is not None:
+            text = remove_key(text, PYRIGHT_TABLE, key)
+            LOGGER.info("pyproject.toml: removed %s.%s", PYRIGHT_TABLE, key)
+    return text
+
+
 PYPROJECT_TRANSFORMS: tuple[Transform, ...] = (
     add_missing_tables,
     use_hatchling,
     merge_dependency_groups,
     configure_ruff,
+    drop_redundant_ruff_settings,
+    drop_pyright_venv,
 )
 
 

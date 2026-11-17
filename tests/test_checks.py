@@ -90,6 +90,42 @@ def test_settings_above_the_minimum_pass(conforming: Path) -> None:
     assert gaps(conforming) == []
 
 
+class TestRuffAndPyright:
+    def test_redundant_ruff_settings(self, conforming: Path) -> None:
+        append(
+            conforming / "pyproject.toml",
+            '\n[tool.ruff.format]\nquote-style = "double"\n',
+        )
+        assert gaps(conforming) == [
+            "tool.ruff.format.quote-style repeats the shared ruff config: remove it"
+        ]
+
+    def test_repo_wide_ignores_need_a_reason_in_agents(self, conforming: Path) -> None:
+        append(conforming / "pyproject.toml", '\n[tool.ruff.lint]\nignore = ["D105"]\n')
+        assert gaps(conforming) == [
+            "ruff ignores D105 in every file: fix the code, use per-file-ignores or "
+            "a targeted noqa, or give the reason in AGENTS.md"
+        ]
+        append(conforming / "AGENTS.md", "\n- D105: magic methods inherit docs.\n")
+        assert gaps(conforming) == []
+
+    def test_a_code_inside_another_word_is_not_a_reason(self, conforming: Path) -> None:
+        append(conforming / "pyproject.toml", '\n[tool.ruff.lint]\nignore = ["S1"]\n')
+        append(conforming / "AGENTS.md", "\nS101 is fine in tests.\n")
+        assert any("ignores S1 in every file" in gap for gap in gaps(conforming))
+
+    def test_pinned_pyright(self, conforming: Path) -> None:
+        edit(
+            conforming / "pyproject.toml",
+            "[tool.pyright]\n",
+            '[tool.pyright]\nvenv = ".venv"\n',
+        )
+        assert gaps(conforming) == [
+            "tool.pyright.venv points pyright at one environment, so tox -e type "
+            "would not check its own: remove it"
+        ]
+
+
 class TestBuild:
     def test_setuptools_leftovers(self, conforming: Path) -> None:
         (conforming / "setup.py").write_text("", encoding="utf-8")

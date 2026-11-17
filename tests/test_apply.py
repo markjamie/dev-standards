@@ -8,6 +8,8 @@ from devstandards.apply import (
     apply_templates,
     configure_ruff,
     copy_template,
+    drop_pyright_venv,
+    drop_redundant_ruff_settings,
     ensure_import,
     merge_dependency_groups,
     pin_minor_versions,
@@ -135,6 +137,70 @@ class TestConfigureRuff:
         assert ruff["extend"] == f"{CHECKOUT}/ruff.toml"
 
 
+# Modelled on radchem before it adopted dev-standards: settings the shared ruff.toml
+# already makes, a repo-wide ignore list and a pyright pinned to .venv.
+REDUNDANT_PYPROJECT = """\
+[tool.ruff]
+extend = ".dev-standards/ruff.toml"
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.lint]
+extend-select = [
+    "E",     # pycodestyle
+    "A",     # prevent shadowing builtins
+    "PIE",   # miscellaneous simplifications
+]
+# D105: magic methods inherit their class docs.
+ignore = [
+  "D105",
+  "D203",
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.pyright]
+include = ["src"]
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "strict"
+"""
+
+
+class TestDropRedundantSettings:
+    def test_keeps_only_local_ruff_overrides(self) -> None:
+        result = drop_redundant_ruff_settings(REDUNDANT_PYPROJECT, TEMPLATE)
+        ruff = tomllib.loads(result)["tool"]["ruff"]
+        assert ruff == {
+            "extend": ".dev-standards/ruff.toml",
+            "lint": {"extend-select": ["A", "PIE"], "ignore": ["D105"]},
+        }
+        assert "# prevent shadowing builtins" in result
+        assert "# D105: magic methods inherit their class docs." in result
+        assert "# pycodestyle" not in result
+
+    def test_is_idempotent(self) -> None:
+        once = drop_redundant_ruff_settings(REDUNDANT_PYPROJECT, TEMPLATE)
+        assert drop_redundant_ruff_settings(once, TEMPLATE) == once
+
+    def test_leaves_dotted_keys_for_the_checks(self) -> None:
+        text = "[tool]\nruff.line-length = 88\n"
+        assert drop_redundant_ruff_settings(text, TEMPLATE) == text
+
+    def test_unpins_pyright(self) -> None:
+        result = drop_pyright_venv(REDUNDANT_PYPROJECT, TEMPLATE)
+        assert tomllib.loads(result)["tool"]["pyright"] == {
+            "include": ["src"],
+            "typeCheckingMode": "strict",
+        }
+        assert drop_pyright_venv(result, TEMPLATE) == result
+
+
 class TestUpdatePyproject:
     def test_writes_valid_conforming_file(self, setuptools_repo: Path) -> None:
         update_pyproject(setuptools_repo, CHECKOUT, PACKAGE)
@@ -143,6 +209,9 @@ class TestUpdatePyproject:
         assert parsed["tool"]["ruff"]["extend"] == f"{CHECKOUT}/ruff.toml"
         assert "typecheck" in parsed["dependency-groups"]
         assert parsed["tool"]["coverage"]["report"]["fail_under"] == 90  # judgement
+        # Shared settings go; the repo's own rule families stay.
+        assert "line-length" not in parsed["tool"]["ruff"]
+        assert parsed["tool"]["ruff"]["lint"]["extend-select"] == ["A", "PIE"]
 
     def test_refuses_to_write_invalid_toml(self, new_repo: Path) -> None:
         # ruff configured by dotted keys under [tool] cannot take a [tool.ruff] table.

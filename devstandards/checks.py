@@ -4,13 +4,14 @@ Each check yields one message per gap. Checks only read, so they run both after 
 templates are applied and on their own with --check.
 """
 
+import re
 import tomllib
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from devstandards import dependency_groups, gitignore
+from devstandards import dependency_groups, gitignore, ruff_config
 from devstandards.layout import (
     AGENTS_FILE,
     AGENTS_IMPORT,
@@ -47,6 +48,8 @@ HATCH_PACKAGE_KEYS = (
     "tool.hatch.build.targets.wheel.only-include",
 )
 PER_FILE_IGNORES = "tool.ruff.lint.per-file-ignores"
+PYRIGHT_TABLE = "tool.pyright"
+PYRIGHT_VENV_KEYS = ("venvPath", "venv")
 TOX_INI = "tox.ini"
 TOX_FILE = "tox.toml"
 # The parts of tox.toml a repo may extend: it adds environments and lists them.
@@ -98,6 +101,37 @@ def check_ruff(state: RepoState) -> Iterator[str]:
     for path in wanted:
         if path not in present:
             yield f'[{PER_FILE_IGNORES}] lacks the template entry for "{path}"'
+
+
+def check_ruff_redundancy(state: RepoState) -> Iterator[str]:
+    """Report ruff settings that repeat the shared ruff.toml."""
+    shared = ruff_config.load_shared()
+    for found in ruff_config.redundant_settings(state.pyproject, shared):
+        yield found.describe()
+
+
+def check_ruff_ignores(state: RepoState) -> Iterator[str]:
+    """Report repo-wide ruff ignores that AGENTS.md does not justify."""
+    agents = read_text(state.root / AGENTS_FILE)
+    codes = ruff_config.repo_wide_ignores(state.pyproject, ruff_config.load_shared())
+    unrecorded = [
+        code for code in codes if not re.search(rf"\b{re.escape(code)}\b", agents)
+    ]
+    if unrecorded:
+        yield (
+            f"ruff ignores {', '.join(unrecorded)} in every file: fix the code, use "
+            f"per-file-ignores or a targeted noqa, or give the reason in {AGENTS_FILE}"
+        )
+
+
+def check_pyright_venv(state: RepoState) -> Iterator[str]:
+    """Report pyright settings that pin it to one virtual environment."""
+    for key in PYRIGHT_VENV_KEYS:
+        if lookup(state.pyproject, f"{PYRIGHT_TABLE}.{key}") is not None:
+            yield (
+                f"{PYRIGHT_TABLE}.{key} points pyright at one environment, so "
+                "tox -e type would not check its own: remove it"
+            )
 
 
 def check_enforced_settings(state: RepoState) -> Iterator[str]:
@@ -272,6 +306,9 @@ def check_python_version_file(state: RepoState) -> Iterator[str]:
 CHECKS: tuple[Check, ...] = (
     check_pyproject_tables,
     check_ruff,
+    check_ruff_redundancy,
+    check_ruff_ignores,
+    check_pyright_venv,
     check_enforced_settings,
     check_build,
     check_dependency_groups,
