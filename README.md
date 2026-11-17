@@ -40,6 +40,12 @@ The bootstrap makes the mechanical changes itself and keeps comments and layout 
   (comments inside `[dependency-groups]` are not kept when it is rewritten);
 - points ruff at `ruff.toml`, turns a local `select` into `extend-select`, and adds the
   template's `per-file-ignores` for paths the repo does not already configure;
+- removes ruff settings that repeat `ruff.toml` (`target-version`, `line-length`, the
+  complexity limit, the docstring convention, rule families it already selects and
+  codes it already ignores) and ruff format's own defaults (`quote-style = "double"`,
+  `indent-style = "space"`), keeping the comments beside any entries that stay;
+- removes `venvPath` and `venv` from `[tool.pyright]`, which pin pyright to one
+  environment so that `tox -e type` would not check its own;
 - replaces the CI workflow, since CI runs `tox` and nothing else;
 - reduces `.python-version` patch pins to minor versions, and merges `.gitignore`.
 
@@ -48,6 +54,8 @@ What needs judgement is left to you and listed under `ACTION NEEDED`:
 - a `tox.ini` (or `[tool.tox]`, or `setup.cfg [tox:tox]`) that hides `tox.toml`: port
   repo-specific environments into `tox.toml`, then delete it;
 - thresholds below the standard: raise them, or record why in `AGENTS.md`;
+- ruff rules ignored in every file: fix the code, use `per-file-ignores` or a targeted
+  `noqa`, or give the reason in `AGENTS.md` (naming the rule code there clears it);
 - a pre-commit config that differs from the template, or a `tox.toml` that changes or
   drops a template setting (adding environments and listing them in `env_list` is
   fine, and comments and layout are not compared);

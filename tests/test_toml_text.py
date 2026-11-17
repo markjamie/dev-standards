@@ -10,6 +10,8 @@ from devstandards.toml_text import (
     lookup,
     lookup_list,
     lookup_table,
+    remove_array_items,
+    remove_key,
     remove_tables,
     rename_key,
     replace_table,
@@ -124,6 +126,81 @@ class TestEditing:
         text = "[a]\nselect = 1\n\n[b]\nselect = 2\n"
         result = rename_key(text, "b", "select", "extend-select")
         assert tomllib.loads(result) == {"a": {"select": 1}, "b": {"extend-select": 2}}
+
+
+RUFF_TEXT = """\
+[tool.ruff]
+extend = "shared.toml"
+line-length = 88
+
+[tool.ruff.lint]
+extend-select = [
+    "E",     # pycodestyle
+    "A",     # builtins
+    "F", "PIE",  # two on a line
+]
+# D105: magic methods inherit their class docs.
+ignore = ["D105", "D203"]
+
+# Formatting
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.other]
+x = 1
+"""
+
+
+class TestKeyEdits:
+    def test_remove_key_keeps_the_rest_of_the_table(self) -> None:
+        result = remove_key(RUFF_TEXT, "tool.ruff", "line-length")
+        assert tomllib.loads(result)["tool"]["ruff"]["extend"] == "shared.toml"
+        assert "line-length" not in result
+
+    def test_remove_key_takes_its_comment_and_multiline_value(self) -> None:
+        result = remove_key(RUFF_TEXT, "tool.ruff.lint", "ignore")
+        assert "D105" not in result
+        assert "magic methods" not in result
+        assert "# pycodestyle" in result
+        assert tomllib.loads(result)["tool"]["ruff"]["lint"]["extend-select"]
+
+    def test_remove_key_drops_a_table_left_empty(self) -> None:
+        result = remove_key(RUFF_TEXT, "tool.ruff.format", "quote-style")
+        assert "format" not in tomllib.loads(result)["tool"]["ruff"]
+        assert "# Formatting" not in result
+        assert tomllib.loads(result)["tool"]["other"] == {"x": 1}
+
+    @pytest.mark.parametrize(
+        ("name", "key"), [("tool.ruff", "absent"), ("tool.absent", "line-length")]
+    )
+    def test_remove_key_leaves_text_when_absent(self, name: str, key: str) -> None:
+        assert remove_key(RUFF_TEXT, name, key) == RUFF_TEXT
+
+    def test_remove_items_from_a_multiline_array_keeps_comments(self) -> None:
+        result = remove_array_items(
+            RUFF_TEXT, "tool.ruff.lint", "extend-select", {"E", "F"}
+        )
+        lint = tomllib.loads(result)["tool"]["ruff"]["lint"]
+        assert lint["extend-select"] == ["A", "PIE"]
+        assert "# builtins" in result
+        assert "# two on a line" in result
+        assert "# pycodestyle" not in result
+
+    def test_remove_items_from_a_one_line_array(self) -> None:
+        result = remove_array_items(RUFF_TEXT, "tool.ruff.lint", "ignore", {"D203"})
+        assert 'ignore = ["D105"]' in result
+
+    def test_remove_items_ignores_brackets_inside_strings(self) -> None:
+        text = '[t]\nk = [\n  "a]",  # x [\n  "b",\n]\nafter = 1\n'
+        result = remove_array_items(text, "t", "k", {"b"})
+        assert tomllib.loads(result)["t"] == {"k": ["a]"], "after": 1}
+
+    def test_remove_items_leaves_text_when_absent(self) -> None:
+        assert remove_array_items(RUFF_TEXT, "tool.ruff", "absent", {"E"}) == RUFF_TEXT
+        assert (
+            remove_array_items(RUFF_TEXT, "tool.ruff.lint", "ignore", {"X"})
+            == RUFF_TEXT
+        )
 
 
 class TestWriting:
