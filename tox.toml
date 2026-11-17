@@ -9,6 +9,9 @@ runner = "uv-venv-lock-runner"
 package = "skip"
 description = "Run tests with coverage"
 dependency_groups = ["test"]
+# Each environment keeps its own coverage data, so `tox -p` runs do not race on one
+# shared .coverage file. tox empties env_tmp_dir at the start of every run.
+set_env = { COVERAGE_FILE = "{env_tmp_dir}/.coverage" }
 commands = [["pytest", "--cov", "--cov-report=term-missing", { replace = "posargs", extend = true }]]
 
 [env.lint]
