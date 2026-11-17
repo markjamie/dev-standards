@@ -131,6 +131,7 @@ A task is complete when:
   - `pip-audit` and `pip-licenses` for vulnerability and licence checks.
   - `pytest` across all supported Python versions via `tox`.
 - `tox` is the single entry point: one `tox` run executes tests on 3.12 to 3.15 and at the minimum dependency versions, and runs the lint, type, docstring, audit and licence checks, so local runs match CI.
+- Environments can run in parallel (`tox -p`). Each test environment writes its coverage data to its own `COVERAGE_FILE`; an environment that sets its own `set_env` replaces the template's, so it must keep that entry.
 - `tox` environments install tools from the dependency groups via `dependency_groups`, using tox-uv's `uv-venv-lock-runner`, so every environment gets the versions pinned in `uv.lock`. This needs tox 4.22 and tox-uv 1.25 or later (`uv tool install tox --with tox-uv`).
 - Repo-specific environments (packaging checks, integration runs) go in the repo's `tox.toml`. Leave any that need real services or credentials out of `env_list`, so a plain `tox` stays self-contained, and record them in `AGENTS.md`.
 - Do not keep a `tox.ini`, a `[tox:tox]` section in `setup.cfg` or a `[tool.tox]` table in `pyproject.toml`: tox reads each of them ahead of `tox.toml`.

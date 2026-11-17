@@ -56,3 +56,16 @@ def test_minimum_resolves_package_and_tests_in_one_step(
 
 def test_other_test_envs_use_the_lock(tox: dict[str, Any]) -> None:
     assert tox["env_run_base"]["runner"] == LOCK_RUNNER
+
+
+def test_test_envs_keep_separate_coverage_data(tox: dict[str, Any]) -> None:
+    # A shared ./.coverage is written by every test environment at once under
+    # `tox -p`, which corrupts it and fails whichever environments finish together.
+    coverage_file = tox["env_run_base"]["set_env"]["COVERAGE_FILE"]
+    assert coverage_file.startswith("{env_tmp_dir}/")
+
+
+def test_no_env_replaces_the_coverage_setting(tox: dict[str, Any]) -> None:
+    # An environment's own set_env replaces env_run_base's instead of merging.
+    for name, settings in tox["env"].items():
+        assert "set_env" not in settings, name
