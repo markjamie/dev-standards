@@ -194,3 +194,111 @@ def toml_value(value: object) -> str:
         return "{ " + body + " }"
     msg = f"cannot write {type(value).__name__} as TOML"
     raise TypeError(msg)
+
+
+# --- Key-level edits --------------------------------------------------------------
+
+KEY_LINE = r"^\s*{key}\s*="
+STRING_ITEM = re.compile(r"\"(?:[^\"\\]|\\.)*\"|'[^']*'")
+
+
+def _code_part(line: str) -> str:
+    """Return a line without its comment, leaving any '#' inside strings alone."""
+    quote = ""
+    for index, char in enumerate(line):
+        if quote:
+            if char == quote:
+                quote = ""
+        elif char in "\"'":
+            quote = char
+        elif char == "#":
+            return line[:index]
+    return line
+
+
+def _value_end(lines: Sequence[str], start: int) -> int:
+    """Return the index after the last line of the key that starts at ``start``."""
+    depth = 0
+    for index in range(start, len(lines)):
+        code = STRING_ITEM.sub("", _code_part(lines[index]))
+        depth += code.count("[") + code.count("{") - code.count("]") - code.count("}")
+        if depth <= 0:
+            return index + 1
+    return len(lines)
+
+
+def _key_lines(table_text: str, key: str) -> tuple[list[str], int, int] | None:
+    """Split a table's lines and find a key's span, or None if it is not there."""
+    lines = table_text.splitlines(keepends=True)
+    pattern = re.compile(KEY_LINE.format(key=re.escape(key)))
+    start = next((i for i, line in enumerate(lines) if pattern.match(line)), None)
+    if start is None:
+        return None
+    return lines, start, _value_end(lines, start)
+
+
+def _has_keys(table_text: str) -> bool:
+    """Report whether a table section holds a key, not only a header and comments."""
+    return any(
+        not _is_trivia(line) and _table_name(line) is None
+        for line in table_text.splitlines()
+    )
+
+
+def _edit_section(text: str, name: str, new_text: str) -> str:
+    """Replace one section's text, dropping the table if no keys remain."""
+    sections = split_sections(text)
+    if not _has_keys(new_text):
+        return join_sections([s for s in sections if s.name != name])
+    return join_sections(
+        [Section(name, new_text) if s.name == name else s for s in sections]
+    )
+
+
+def remove_key(text: str, name: str, key: str) -> str:
+    """Delete a key, and the comments directly above it, from a table with a header.
+
+    A table left without keys is deleted too, along with its banner.
+    """
+    table_text = section_text(text, name)
+    found = _key_lines(table_text, key) if table_text is not None else None
+    if found is None:
+        return text
+    lines, start, end = found
+    while start > 0 and lines[start - 1].strip().startswith("#"):
+        start -= 1
+    del lines[start:end]
+    return _edit_section(text, name, "".join(lines))
+
+
+def remove_array_items(text: str, name: str, key: str, items: Collection[str]) -> str:
+    """Delete string entries from an array, keeping the other entries' comments."""
+    table_text = section_text(text, name)
+    found = _key_lines(table_text, key) if table_text is not None else None
+    if found is None:
+        return text
+    lines, start, end = found
+    kept = [_without_items(line, items) for line in lines[start:end]]
+    lines[start:end] = [line for line in kept if line is not None]
+    return _edit_section(text, name, "".join(lines))
+
+
+def _without_items(line: str, items: Collection[str]) -> str | None:
+    """Return a line with the given string entries removed, or None if it empties.
+
+    The entries left keep their order, the line's indent and its comment. A line
+    that held only dropped entries goes, with its comment, which described them.
+    """
+    code = _code_part(line)
+    matches = list(STRING_ITEM.finditer(code))
+    remaining = [m.group() for m in matches if m.group()[1:-1] not in items]
+    if len(remaining) == len(matches):
+        return line
+    trailing_comma = re.match(r"\s*,", code[matches[-1].end() :])
+    tail_start = matches[-1].end() + (trailing_comma.end() if trailing_comma else 0)
+    head, tail = code[: matches[0].start()], code[tail_start:]
+    if not remaining and not head.strip() and not tail.strip():
+        return None
+    body = ", ".join(remaining) + ("," if remaining and trailing_comma else "")
+    comment = line[len(code) :]
+    return f"{head}{body}{tail}{comment}"
