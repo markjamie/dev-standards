@@ -5,6 +5,7 @@ import tomllib
 from pathlib import Path
 from typing import Any
 
+from devstandards.ci import render_workflow
 from devstandards.errors import BootstrapError
 from devstandards.toml_text import lookup
 
@@ -17,8 +18,10 @@ PLACEHOLDER_MODULE = "your_package"
 
 # Replaced only with --force: a repo may extend these by hand.
 COPIED_FILES = ("tox.toml", ".pre-commit-config.yaml")
-# Always replaced: the standard allows no repo-specific CI, so CI runs tox only.
-MANAGED_FILES = (".github/workflows/ci.yml",)
+# Always replaced: CI runs tox only. A repo may declare services, packages and
+# settings its tests need ([tool.dev-standards.ci]; see devstandards/ci.py).
+CI_WORKFLOW = ".github/workflows/ci.yml"
+MANAGED_FILES = (CI_WORKFLOW,)
 # Created when missing and never overwritten, because they hold repo content.
 SEEDED_FILES = ("CHANGELOG.md",)
 GITIGNORE_FILE = ".gitignore"  # merged line by line
@@ -75,6 +78,16 @@ def render_template(name: str, checkout: str, package: str) -> str:
     """Return a template file with its placeholders filled in."""
     text = (TEMPLATES_DIR / name).read_text(encoding="utf-8")
     return render(text, checkout, package)
+
+
+def render_for_repo(
+    name: str, checkout: str, package: str, pyproject: dict[str, Any]
+) -> str:
+    """Return a template as this repo should have it, with any CI additions."""
+    text = render_template(name, checkout, package)
+    if name == CI_WORKFLOW:
+        return render_workflow(text, pyproject)
+    return text
 
 
 def minor_version(line: str) -> str:

@@ -156,7 +156,8 @@ A task is complete when:
 ## Pre-commit and CI
 - Every repo has a `.pre-commit-config.yaml` running `ruff` (lint and format), `pyright` and `interrogate`, so problems are caught before commit. The hooks are `local` and run through `uv run`, so their versions come from `uv.lock`, as tox's do.
 - CI is a GitHub Actions workflow (`.github/workflows/ci.yml`) that runs `tox` and nothing else, so CI and local runs are identical. CI fails on any tox failure, including the coverage threshold.
-- The workflow is the template, unmodified: `bootstrap.py` replaces it on every run, so repos have no CI-specific jobs or exceptions. Anything CI should run goes in `tox.toml`.
+- The workflow is the template: `bootstrap.py` replaces it on every run, so repos have no CI-specific jobs or exceptions. Anything CI should run goes in `tox.toml`.
+- A repo whose tests need services may declare them in `[tool.dev-standards.ci]` in `pyproject.toml`: a PostgreSQL service (`services`), Ubuntu packages (`apt`), Playwright browsers (`playwright`) and job environment variables (`env`). `bootstrap.py` adds only these to the workflow, each value checked against a strict pattern, so CI still runs `tox` and nothing else. The `env` values are throwaway test settings, never secrets. A repo that declares nothing gets the template unchanged.
 
 ## Git
 - Use focused commits, each doing one thing.
