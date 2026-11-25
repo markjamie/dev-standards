@@ -50,36 +50,45 @@ class TestUseHatchling:
     def test_replaces_setuptools_and_its_tables(self) -> None:
         result = use_hatchling(SETUPTOOLS_PYPROJECT, TEMPLATE)
         parsed = tomllib.loads(result)
-        assert parsed["build-system"] == tomllib.loads(TEMPLATE)["build-system"]
+        assert (
+            parsed["build-system"] == tomllib.loads(TEMPLATE)["build-system"]
+        )
         assert "setuptools" not in parsed.get("tool", {})
         assert "# Setuptools" not in result
         assert "# Interrogate" in result
         assert "# Project" in result
 
     @pytest.mark.parametrize(
-        "backend", ["setuptools.build_meta:__legacy__", "setuptools.build_meta"]
+        "backend",
+        ["setuptools.build_meta:__legacy__", "setuptools.build_meta"],
     )
     def test_swaps_every_setuptools_backend(self, backend: str) -> None:
         text = (
-            f'[build-system]\nrequires = ["setuptools"]\nbuild-backend = "{backend}"\n'
+            '[build-system]\nrequires = ["setuptools"]\n'
+            f'build-backend = "{backend}"\n'
         )
         result = use_hatchling(text, TEMPLATE)
         assert (
-            tomllib.loads(result)["build-system"]["build-backend"] == "hatchling.build"
+            tomllib.loads(result)["build-system"]["build-backend"]
+            == "hatchling.build"
         )
 
-    @pytest.mark.parametrize("text", [MINIMAL_PYPROJECT, "[project]\nname = 'x'\n"])
+    @pytest.mark.parametrize(
+        "text", [MINIMAL_PYPROJECT, "[project]\nname = 'x'\n"]
+    )
     def test_leaves_other_builds_alone(self, text: str) -> None:
         assert use_hatchling(text, TEMPLATE) == text
 
 
 class TestMergeDependencyGroups:
     def test_adds_missing_tools_and_groups(self) -> None:
-        groups = tomllib.loads(merge_dependency_groups(SETUPTOOLS_PYPROJECT, TEMPLATE))[
-            "dependency-groups"
-        ]
+        groups = tomllib.loads(
+            merge_dependency_groups(SETUPTOOLS_PYPROJECT, TEMPLATE)
+        )["dependency-groups"]
         assert "pip-audit>=2.7" in groups["lint"]
-        assert "ruff>=0.8.0" in groups["lint"]  # repo bound kept, not the template's
+        assert (
+            "ruff>=0.8.0" in groups["lint"]
+        )  # repo bound kept, not the template's
         assert groups["typecheck"] == ["pyright>=1.1.408"]  # the repo's bound
         assert {"include-group": "typecheck"} in groups["dev"]
         assert "tox>=4.22.0" in groups["dev"]
@@ -107,11 +116,11 @@ class TestMergeDependencyGroups:
 
 class TestConfigureRuff:
     def test_extends_shared_rules_and_keeps_local_ones(self) -> None:
-        ruff = tomllib.loads(configure_ruff(SETUPTOOLS_PYPROJECT, TEMPLATE))["tool"][
-            "ruff"
-        ]
+        ruff = tomllib.loads(configure_ruff(SETUPTOOLS_PYPROJECT, TEMPLATE))[
+            "tool"
+        ]["ruff"]
         assert ruff["extend"] == f"{CHECKOUT}/ruff.toml"
-        assert ruff["line-length"] == 88
+        assert ruff["line-length"] == 79
         assert ruff["lint"]["extend-select"] == ["E", "F", "A", "PIE"]
         assert "select" not in ruff["lint"]
         ignores = ruff["lint"]["per-file-ignores"]
@@ -131,19 +140,20 @@ class TestConfigureRuff:
         assert tomllib.loads(result)["tool"]["ruff"]["lint"]["select"] == ["E"]
 
     def test_creates_ruff_table_when_absent(self) -> None:
-        ruff = tomllib.loads(configure_ruff(MINIMAL_PYPROJECT, TEMPLATE))["tool"][
-            "ruff"
-        ]
+        ruff = tomllib.loads(configure_ruff(MINIMAL_PYPROJECT, TEMPLATE))[
+            "tool"
+        ]["ruff"]
         assert ruff["extend"] == f"{CHECKOUT}/ruff.toml"
 
 
-# Modelled on radchem before it adopted dev-standards: settings the shared ruff.toml
-# already makes, a repo-wide ignore list and a pyright pinned to .venv.
+# Modelled on radchem before it adopted dev-standards: settings the shared
+# ruff.toml already makes, a repo-wide ignore list and a pyright pinned to
+# .venv.
 REDUNDANT_PYPROJECT = """\
 [tool.ruff]
 extend = ".dev-standards/ruff.toml"
 target-version = "py312"
-line-length = 88
+line-length = 79
 
 [tool.ruff.lint]
 extend-select = [
@@ -189,7 +199,7 @@ class TestDropRedundantSettings:
         assert drop_redundant_ruff_settings(once, TEMPLATE) == once
 
     def test_leaves_dotted_keys_for_the_checks(self) -> None:
-        text = "[tool]\nruff.line-length = 88\n"
+        text = "[tool]\nruff.line-length = 79\n"
         assert drop_redundant_ruff_settings(text, TEMPLATE) == text
 
     def test_unpins_pyright(self) -> None:
@@ -208,14 +218,17 @@ class TestUpdatePyproject:
         assert parsed["build-system"]["build-backend"] == "hatchling.build"
         assert parsed["tool"]["ruff"]["extend"] == f"{CHECKOUT}/ruff.toml"
         assert "typecheck" in parsed["dependency-groups"]
-        assert parsed["tool"]["coverage"]["report"]["fail_under"] == 90  # judgement
+        assert (
+            parsed["tool"]["coverage"]["report"]["fail_under"] == 90
+        )  # judgement
         # Shared settings go; the repo's own rule families stay.
         assert "line-length" not in parsed["tool"]["ruff"]
         assert parsed["tool"]["ruff"]["lint"]["extend-select"] == ["A", "PIE"]
 
     def test_refuses_to_write_invalid_toml(self, new_repo: Path) -> None:
-        # ruff configured by dotted keys under [tool] cannot take a [tool.ruff] table.
-        original = MINIMAL_PYPROJECT + "\n[tool]\nruff.line-length = 88\n"
+        # ruff configured by dotted keys under [tool] cannot take a [tool.ruff]
+        # table.
+        original = MINIMAL_PYPROJECT + "\n[tool]\nruff.line-length = 79\n"
         (new_repo / "pyproject.toml").write_text(original, encoding="utf-8")
         with pytest.raises(BootstrapError, match="invalid TOML"):
             update_pyproject(new_repo, CHECKOUT, PACKAGE)
@@ -223,7 +236,9 @@ class TestUpdatePyproject:
 
 
 class TestFiles:
-    def test_copy_keeps_existing_unless_overwriting(self, tmp_path: Path) -> None:
+    def test_copy_keeps_existing_unless_overwriting(
+        self, tmp_path: Path
+    ) -> None:
         target = tmp_path / "tox.toml"
         target.write_text("mine", encoding="utf-8")
         copy_template(tmp_path, "tox.toml", CHECKOUT, PACKAGE, overwrite=False)
@@ -241,11 +256,15 @@ class TestFiles:
         pin_minor_versions(tmp_path)
         assert read(path) == "3.13\n3.12\n"
 
-    def test_pin_minor_versions_ignores_missing_file(self, tmp_path: Path) -> None:
+    def test_pin_minor_versions_ignores_missing_file(
+        self, tmp_path: Path
+    ) -> None:
         pin_minor_versions(tmp_path)
         assert not (tmp_path / ".python-version").exists()
 
-    def test_ensure_import_creates_prepends_and_skips(self, tmp_path: Path) -> None:
+    def test_ensure_import_creates_prepends_and_skips(
+        self, tmp_path: Path
+    ) -> None:
         agents = tmp_path / "AGENTS.md"
         ensure_import(tmp_path, "AGENTS.md", "@x/STANDARDS.md", "x")
         assert read(agents).startswith("@x/STANDARDS.md")
@@ -259,7 +278,9 @@ class TestFiles:
 class TestApplyTemplates:
     def test_ci_is_always_replaced(self, setuptools_repo: Path) -> None:
         apply_templates(setuptools_repo, CHECKOUT, force=False)
-        assert read(setuptools_repo / CI) == render_template(CI, CHECKOUT, PACKAGE)
+        assert read(setuptools_repo / CI) == render_template(
+            CI, CHECKOUT, PACKAGE
+        )
 
     def test_copied_files_need_force(self, setuptools_repo: Path) -> None:
         (setuptools_repo / "tox.toml").write_text("mine", encoding="utf-8")
@@ -273,7 +294,9 @@ class TestApplyTemplates:
         apply_templates(new_repo, CHECKOUT, force=True)
         assert read(new_repo / "CHANGELOG.md") == "# History\n"
 
-    def test_fixes_python_version_and_agent_files(self, setuptools_repo: Path) -> None:
+    def test_fixes_python_version_and_agent_files(
+        self, setuptools_repo: Path
+    ) -> None:
         apply_templates(setuptools_repo, CHECKOUT, force=False)
         assert read(setuptools_repo / ".python-version") == "3.13\n3.12\n"
         assert read(setuptools_repo / "AGENTS.md").startswith(

@@ -1,4 +1,4 @@
-"""Guard template settings that would otherwise fail by passing without checking."""
+"""Guard template settings that would otherwise pass without checking."""
 
 import tomllib
 from typing import Any
@@ -12,7 +12,9 @@ LOCK_RUNNER = "uv-venv-lock-runner"
 
 @pytest.fixture(scope="module")
 def tox() -> dict[str, Any]:
-    return tomllib.loads((TEMPLATES_DIR / "tox.toml").read_text(encoding="utf-8"))
+    return tomllib.loads(
+        (TEMPLATES_DIR / "tox.toml").read_text(encoding="utf-8")
+    )
 
 
 @pytest.fixture(scope="module")
@@ -30,7 +32,9 @@ def test_minimum_uses_the_oldest_supported_python(
     assert minimum["base_python"] == [tox["env_list"][0]]
 
 
-def test_minimum_does_not_install_from_the_lock(minimum: dict[str, Any]) -> None:
+def test_minimum_does_not_install_from_the_lock(
+    minimum: dict[str, Any],
+) -> None:
     # uv.lock pins the newest versions, which would defeat the check.
     assert minimum["runner"] != LOCK_RUNNER
 
@@ -38,8 +42,9 @@ def test_minimum_does_not_install_from_the_lock(minimum: dict[str, Any]) -> None
 def test_minimum_installs_nothing_before_its_own_resolution(
     minimum: dict[str, Any],
 ) -> None:
-    # Anything installed first (the inherited test group, or the package itself)
-    # can bring in newer versions that the lowest-direct install then keeps.
+    # Anything installed first (the inherited test group, or the package
+    # itself) can bring in newer versions that the lowest-direct install then
+    # keeps.
     assert minimum["dependency_groups"] == []
     assert minimum["skip_install"] is True
 
@@ -60,7 +65,8 @@ def test_other_test_envs_use_the_lock(tox: dict[str, Any]) -> None:
 
 def test_test_envs_keep_separate_coverage_data(tox: dict[str, Any]) -> None:
     # A shared ./.coverage is written by every test environment at once under
-    # `tox -p`, which corrupts it and fails whichever environments finish together.
+    # `tox -p`, which corrupts it and fails whichever environments finish
+    # together.
     coverage_file = tox["env_run_base"]["set_env"]["COVERAGE_FILE"]
     assert coverage_file.startswith("{env_tmp_dir}/")
 

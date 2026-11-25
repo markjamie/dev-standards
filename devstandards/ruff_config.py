@@ -1,9 +1,9 @@
-"""Find repo ruff settings that repeat the shared ruff.toml, and repo-wide ignores.
+"""Find ruff settings repeating the shared ruff.toml, and global ignores.
 
-A repo extends the shared ruff.toml and keeps only local overrides, so a setting
-equal to the shared one (or to ruff's own default, where the standard leaves it
-unset) is dead weight that hides real overrides. Repo-wide ignores weaken the shared
-rules for every file, so each must be justified in AGENTS.md.
+A repo extends the shared ruff.toml and keeps only local overrides, so a
+setting equal to the shared one (or to ruff's own default, where the standard
+leaves it unset) is dead weight that hides real overrides. Repo-wide ignores
+weaken the shared rules for every file, so each must be justified in AGENTS.md.
 """
 
 import tomllib
@@ -34,7 +34,7 @@ IGNORE_KEYS = ("ignore", "extend-ignore")
 
 @dataclass(frozen=True)
 class Redundancy:
-    """A repo setting, or some entries of one, that the shared config already makes."""
+    """A repo setting, or some entries of one, that the shared config makes."""
 
     table: str
     key: str
@@ -49,7 +49,10 @@ class Redundancy:
         """Say what repeats the shared config, as a check message."""
         if self.entries:
             listed = ", ".join(self.entries)
-            return f"{self.setting} repeats {listed} from the shared rules: remove them"
+            return (
+                f"{self.setting} repeats {listed} from the shared rules: "
+                f"remove them"
+            )
         return f"{self.setting} repeats the shared ruff config: remove it"
 
 
@@ -61,7 +64,7 @@ def load_shared() -> dict[str, Any]:
 def redundant_settings(
     pyproject: dict[str, Any], shared: dict[str, Any]
 ) -> list[Redundancy]:
-    """Return every repo ruff setting the shared config or ruff's defaults provide."""
+    """Return repo ruff settings that the shared config or defaults provide."""
     expected = {
         place: lookup(shared, shared_key)
         for place, shared_key in SHARED_SCALARS.items()
@@ -86,8 +89,10 @@ def redundant_settings(
     return found
 
 
-def repo_wide_ignores(pyproject: dict[str, Any], shared: dict[str, Any]) -> list[str]:
-    """Return the rule codes a repo ignores everywhere beyond the shared ignores."""
+def repo_wide_ignores(
+    pyproject: dict[str, Any], shared: dict[str, Any]
+) -> list[str]:
+    """Return rule codes a repo ignores everywhere, beyond the shared ones."""
     provided = set(lookup_list(shared, "lint.ignore"))
     codes = [
         code

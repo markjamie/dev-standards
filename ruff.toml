@@ -3,7 +3,7 @@
 # Add new rule families one at a time, running `ruff check` after each.
 
 target-version = "py312"
-line-length = 88
+line-length = 79
 # The submodule is not the consuming repo's code. The pattern is unanchored, so it
 # matches the submodule's directory wherever ruff walks into it.
 extend-exclude = [".dev-standards"]

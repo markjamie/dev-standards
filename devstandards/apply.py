@@ -1,8 +1,8 @@
 """Bring a repo's files in line with the templates.
 
 Edits are limited to what the standard owns: missing tables and keys are added,
-setuptools is replaced by hatchling, and managed files are overwritten. Anything that
-needs judgement is left alone and reported by the checks instead.
+setuptools is replaced by hatchling, and managed files are overwritten.
+Anything that needs judgement is left alone and reported by the checks instead.
 """
 
 import logging
@@ -59,17 +59,20 @@ PER_FILE_IGNORES = "tool.ruff.lint.per-file-ignores"
 PYRIGHT_TABLE = "tool.pyright"
 # Pin pyright to one environment, so `tox -e type` would not check its own.
 PYRIGHT_VENV_KEYS = ("venvPath", "venv")
-INDENT = re.compile(r"^([ \t]+)\S", re.MULTILINE)  # reuse the repo's array indent
+INDENT = re.compile(
+    r"^([ \t]+)\S", re.MULTILINE
+)  # reuse the repo's array indent
 
-# Each takes (repo pyproject text, rendered template text) and returns the new text.
+# Each takes (repo pyproject text, rendered template text) and returns the new
+# text.
 type Transform = Callable[[str, str], str]
 
 
-# --- pyproject.toml ---------------------------------------------------------------
+# --- pyproject.toml ----------------------------------------------------------
 
 
 def add_missing_tables(text: str, template: str) -> str:
-    """Append template tables the repo lacks, leaving existing tables untouched."""
+    """Append template tables the repo lacks; leave existing tables alone."""
     parsed = tomllib.loads(text)
     added: list[str] = []
     for section in split_sections(template)[1:]:
@@ -81,12 +84,14 @@ def add_missing_tables(text: str, template: str) -> str:
 
 
 def use_hatchling(text: str, template: str) -> str:
-    """Replace a setuptools build backend, and its configuration, with hatchling.
+    """Replace a setuptools build backend and its configuration with hatchling.
 
     Hatchling finds a src-layout package by its project name, so the setuptools
     package-discovery tables have no replacement.
     """
-    backend = lookup(tomllib.loads(text), f"{BUILD_SYSTEM_TABLE}.build-backend")
+    backend = lookup(
+        tomllib.loads(text), f"{BUILD_SYSTEM_TABLE}.build-backend"
+    )
     if not (isinstance(backend, str) and backend.startswith(SETUPTOOLS)):
         return text
     build_system = section_text(template, BUILD_SYSTEM_TABLE)
@@ -106,7 +111,8 @@ def use_hatchling(text: str, template: str) -> str:
 def merge_dependency_groups(text: str, template: str) -> str:
     """Add the groups, tools and includes the tox environments need."""
     if dependency_groups.TABLE not in table_names(text):
-        return text  # absent, or written as dotted keys the table editor cannot reach
+        # Absent, or written as dotted keys the table editor cannot reach.
+        return text
     actual = lookup_table(tomllib.loads(text), dependency_groups.TABLE)
     expected = lookup_table(tomllib.loads(template), dependency_groups.TABLE)
     merged = dependency_groups.merge(actual, expected)
@@ -133,12 +139,14 @@ def configure_ruff(text: str, template: str) -> str:
         has_select = lookup(parsed, f"{table}.select") is not None
         if has_select and lookup(parsed, f"{table}.extend-select") is None:
             text = rename_key(text, table, "select", "extend-select")
-            LOGGER.info("pyproject.toml: [%s] select is now extend-select", table)
+            LOGGER.info(
+                "pyproject.toml: [%s] select is now extend-select", table
+            )
     return _add_per_file_ignores(text, expected)
 
 
 def _add_per_file_ignores(text: str, expected: dict[str, Any]) -> str:
-    """Add the template's per-file-ignores for paths the repo does not configure."""
+    """Add template per-file-ignores for paths the repo does not configure."""
     wanted = lookup_table(expected, PER_FILE_IGNORES)
     present = lookup_table(tomllib.loads(text), PER_FILE_IGNORES)
     lines = [
@@ -148,25 +156,31 @@ def _add_per_file_ignores(text: str, expected: dict[str, Any]) -> str:
     ]
     if not lines:
         return text
-    LOGGER.info("pyproject.toml: added per-file-ignores for %d paths", len(lines))
+    LOGGER.info(
+        "pyproject.toml: added per-file-ignores for %d paths", len(lines)
+    )
     return add_lines(text, PER_FILE_IGNORES, lines)
 
 
 def drop_redundant_ruff_settings(text: str, template: str) -> str:  # noqa: ARG001  # a Transform
-    """Remove ruff settings and rule entries the shared ruff.toml already provides.
+    """Remove ruff settings and rules the shared ruff.toml already provides.
 
-    Settings written as dotted keys rather than under their own table header are
-    left alone, and reported by the checks instead.
+    Settings written as dotted keys rather than under their own table header
+    are left alone, and reported by the checks instead.
     """
     shared = ruff_config.load_shared()
     for found in ruff_config.redundant_settings(tomllib.loads(text), shared):
         if found.entries:
-            text = remove_array_items(text, found.table, found.key, found.entries)
+            text = remove_array_items(
+                text, found.table, found.key, found.entries
+            )
             removed = f"{', '.join(found.entries)} from {found.setting}"
         else:
             text = remove_key(text, found.table, found.key)
             removed = found.setting
-        LOGGER.info("pyproject.toml: removed %s, which the shared rules set", removed)
+        LOGGER.info(
+            "pyproject.toml: removed %s, which the shared rules set", removed
+        )
     return text
 
 
@@ -201,14 +215,15 @@ def update_pyproject(root: Path, checkout: str, package: str) -> None:
         tomllib.loads(text)
     except tomllib.TOMLDecodeError as error:
         msg = (
-            f"editing {PYPROJECT_FILE} produced invalid TOML ({error}); left unchanged"
+            f"editing {PYPROJECT_FILE} produced invalid TOML ({error}); left "
+            f"unchanged"
         )
         raise BootstrapError(msg) from error
     if text != original:
         path.write_text(text, encoding="utf-8")
 
 
-# --- Other files ------------------------------------------------------------------
+# --- Other files -------------------------------------------------------------
 
 
 def copy_template(  # noqa: PLR0913 - the repo, the template and how to write it
@@ -220,10 +235,12 @@ def copy_template(  # noqa: PLR0913 - the repo, the template and how to write it
     overwrite: bool,
     pyproject: dict[str, Any] | None = None,
 ) -> None:
-    """Write one template into the repo, replacing an existing copy only if asked."""
+    """Write one template into the repo, replacing a copy only if asked."""
     destination = root / name
     rendered = render_for_repo(name, checkout, package, pyproject or {})
-    if destination.exists() and (not overwrite or read_text(destination) == rendered):
+    if destination.exists() and (
+        not overwrite or read_text(destination) == rendered
+    ):
         LOGGER.info("kept existing %s", name)
         return
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -232,18 +249,22 @@ def copy_template(  # noqa: PLR0913 - the repo, the template and how to write it
 
 
 def pin_minor_versions(root: Path) -> None:
-    """Reduce .python-version patch pins to minor versions so any patch fits."""
+    """Reduce .python-version patch pins to minor versions."""
     path = root / PYTHON_VERSION_FILE
     original = read_text(path)
-    lines = dict.fromkeys(minor_version(line) for line in original.splitlines())
+    lines = dict.fromkeys(
+        minor_version(line) for line in original.splitlines()
+    )
     text = "".join(f"{line}\n" for line in lines)
     if original and text != original:
         path.write_text(text, encoding="utf-8")
         LOGGER.info("%s: pinned minor versions only", PYTHON_VERSION_FILE)
 
 
-def ensure_import(root: Path, name: str, import_line: str, checkout: str) -> None:
-    """Make sure an agent file contains an import line, preserving existing content."""
+def ensure_import(
+    root: Path, name: str, import_line: str, checkout: str
+) -> None:
+    """Ensure an agent file has an import line, keeping existing content."""
     destination = root / name
     if not destination.exists():
         destination.write_text(render_template(name, checkout, ""), "utf-8")
@@ -277,5 +298,7 @@ def apply_templates(root: Path, checkout: str, *, force: bool) -> None:
     for name in SEEDED_FILES:
         copy_template(root, name, checkout, package, overwrite=False)
     gitignore.merge(root)
-    ensure_import(root, AGENTS_FILE, STANDARDS_IMPORT.format(path=checkout), checkout)
+    ensure_import(
+        root, AGENTS_FILE, STANDARDS_IMPORT.format(path=checkout), checkout
+    )
     ensure_import(root, CLAUDE_FILE, AGENTS_IMPORT, checkout)

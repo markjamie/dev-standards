@@ -56,10 +56,14 @@ class TestDiscoverRepo:
 
     def test_rejects_repo_without_the_submodule(self, tmp_path: Path) -> None:
         git_init(tmp_path)
-        with pytest.raises(BootstrapError, match="add it as a submodule first"):
+        with pytest.raises(
+            BootstrapError, match="add it as a submodule first"
+        ):
             discover_repo(tmp_path)
 
-    def test_needs_git(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_needs_git(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         monkeypatch.setenv("PATH", str(tmp_path))
         with pytest.raises(BootstrapError, match="git is required"):
             discover_repo(tmp_path)
@@ -85,7 +89,9 @@ class TestRun:
         assert sorted(new_repo.rglob("*")) == before
 
     def test_apply_then_install(self, new_repo: Path, tmp_path: Path) -> None:
-        assert run(new_repo, CHECKOUT, Options(), uv=fake_uv(tmp_path, 0)) == []
+        assert (
+            run(new_repo, CHECKOUT, Options(), uv=fake_uv(tmp_path, 0)) == []
+        )
 
     def test_apply_without_install(self, new_repo: Path) -> None:
         assert run(new_repo, CHECKOUT, Options(install=False), uv=None) == []
@@ -127,7 +133,7 @@ class TestCommandLine:
 
 
 class TestEndToEnd:
-    """Run bootstrap.py as a user would, from a copy inside a fresh git repo."""
+    """Run bootstrap.py as a user would, from a copy in a fresh git repo."""
 
     def test_new_repo_conforms_after_bootstrap(
         self, tmp_path: Path, install_standards: Callable[[Path], Path]
@@ -151,5 +157,7 @@ class TestEndToEnd:
         install_standards(root)
         applied = bootstrap(root, "--no-install")
         assert applied.returncode == 0, applied.stderr
-        assert "replaced setuptools.build_meta with hatchling" in applied.stderr
+        assert (
+            "replaced setuptools.build_meta with hatchling" in applied.stderr
+        )
         assert "ACTION NEEDED (2):" in applied.stderr  # the two thresholds
