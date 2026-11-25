@@ -29,6 +29,7 @@ from devstandards.layout import (
     package_name,
     read_pyproject,
     read_text,
+    render_for_repo,
     render_template,
 )
 from devstandards.toml_text import (
@@ -210,12 +211,18 @@ def update_pyproject(root: Path, checkout: str, package: str) -> None:
 # --- Other files ------------------------------------------------------------------
 
 
-def copy_template(
-    root: Path, name: str, checkout: str, package: str, *, overwrite: bool
+def copy_template(  # noqa: PLR0913 - the repo, the template and how to write it
+    root: Path,
+    name: str,
+    checkout: str,
+    package: str,
+    *,
+    overwrite: bool,
+    pyproject: dict[str, Any] | None = None,
 ) -> None:
     """Write one template into the repo, replacing an existing copy only if asked."""
     destination = root / name
-    rendered = render_template(name, checkout, package)
+    rendered = render_for_repo(name, checkout, package, pyproject or {})
     if destination.exists() and (not overwrite or read_text(destination) == rendered):
         LOGGER.info("kept existing %s", name)
         return
@@ -259,11 +266,14 @@ def apply_templates(root: Path, checkout: str, *, force: bool) -> None:
     """Write or merge every template into the repo."""
     package = package_name(root, read_pyproject(root))
     update_pyproject(root, checkout, package)
+    pyproject = read_pyproject(root)  # as updated, with any CI additions
     pin_minor_versions(root)
     for name in COPIED_FILES:
         copy_template(root, name, checkout, package, overwrite=force)
     for name in MANAGED_FILES:
-        copy_template(root, name, checkout, package, overwrite=True)
+        copy_template(
+            root, name, checkout, package, overwrite=True, pyproject=pyproject
+        )
     for name in SEEDED_FILES:
         copy_template(root, name, checkout, package, overwrite=False)
     gitignore.merge(root)

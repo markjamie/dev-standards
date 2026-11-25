@@ -28,6 +28,7 @@ from devstandards.layout import (
     package_name,
     read_pyproject,
     read_text,
+    render_for_repo,
     render_template,
 )
 from devstandards.toml_text import lookup, lookup_list, lookup_table, split_sections
@@ -257,7 +258,7 @@ def check_template_files(state: RepoState) -> Iterator[str]:
     remedies |= dict.fromkeys(MANAGED_FILES, "rerun bootstrap.py to replace it")
     for name, remedy in remedies.items():
         path = state.root / name
-        expected = render_template(name, state.checkout, state.package)
+        expected = render_for_repo(name, state.checkout, state.package, state.pyproject)
         if not path.exists():
             yield f"{name} is missing"
         elif name == TOX_FILE:

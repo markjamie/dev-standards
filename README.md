@@ -10,7 +10,7 @@ Shared development standards and tooling config. Read [STANDARDS.md](STANDARDS.m
 | `templates/.pre-commit-config.yaml` | ruff, pyright, interrogate hooks via `uv run` | Copied; replaced with `--force` |
 | `templates/AGENTS.md` | Canonical agent instructions; imports `STANDARDS.md` | Import added; repo rules kept |
 | `templates/CLAUDE.md` | One-line shim importing `AGENTS.md` for Claude Code | Created if missing |
-| `templates/.github/workflows/ci.yml` | Runs `tox` on push, PR and weekly | Replaced on every run |
+| `templates/.github/workflows/ci.yml` | Runs `tox` on push, PR and weekly | Replaced on every run, plus any services the repo declares in `[tool.dev-standards.ci]` |
 | `templates/.gitignore` | Caches, environments, coverage output, secrets files | Merged |
 | `templates/CHANGELOG.md` | Empty Keep a Changelog file | Created if missing |
 | `bootstrap.py` and `devstandards/` | Apply all of the above, then report what still differs | Run once; `--check` any time |
