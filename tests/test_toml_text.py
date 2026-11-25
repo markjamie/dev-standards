@@ -60,7 +60,9 @@ class TestLookup:
 
 
 class TestSplitSections:
-    @pytest.mark.parametrize("text", [BANNERED, SETUPTOOLS_PYPROJECT, "", "x = 1\n"])
+    @pytest.mark.parametrize(
+        "text", [BANNERED, SETUPTOOLS_PYPROJECT, "", "x = 1\n"]
+    )
     def test_round_trips_exactly(self, text: str) -> None:
         assert join_sections(split_sections(text)) == text
 
@@ -97,7 +99,9 @@ class TestEditing:
         assert result.endswith("w = 3\n\n[d]\nk = 1\n")
 
     def test_replace_last_table_keeps_final_newline(self) -> None:
-        assert replace_table("[a]\nx = 1", "a", "[a]\nx = 2").endswith("x = 2\n")
+        assert replace_table("[a]\nx = 1", "a", "[a]\nx = 2").endswith(
+            "x = 2\n"
+        )
 
     def test_remove_tables_takes_their_banners(self) -> None:
         result = remove_tables(BANNERED, {"b"})
@@ -125,13 +129,16 @@ class TestEditing:
     def test_rename_key_only_in_named_table(self) -> None:
         text = "[a]\nselect = 1\n\n[b]\nselect = 2\n"
         result = rename_key(text, "b", "select", "extend-select")
-        assert tomllib.loads(result) == {"a": {"select": 1}, "b": {"extend-select": 2}}
+        assert tomllib.loads(result) == {
+            "a": {"select": 1},
+            "b": {"extend-select": 2},
+        }
 
 
 RUFF_TEXT = """\
 [tool.ruff]
 extend = "shared.toml"
-line-length = 88
+line-length = 79
 
 [tool.ruff.lint]
 extend-select = [
@@ -171,9 +178,12 @@ class TestKeyEdits:
         assert tomllib.loads(result)["tool"]["other"] == {"x": 1}
 
     @pytest.mark.parametrize(
-        ("name", "key"), [("tool.ruff", "absent"), ("tool.absent", "line-length")]
+        ("name", "key"),
+        [("tool.ruff", "absent"), ("tool.absent", "line-length")],
     )
-    def test_remove_key_leaves_text_when_absent(self, name: str, key: str) -> None:
+    def test_remove_key_leaves_text_when_absent(
+        self, name: str, key: str
+    ) -> None:
         assert remove_key(RUFF_TEXT, name, key) == RUFF_TEXT
 
     def test_remove_items_from_a_multiline_array_keeps_comments(self) -> None:
@@ -187,7 +197,9 @@ class TestKeyEdits:
         assert "# pycodestyle" not in result
 
     def test_remove_items_from_a_one_line_array(self) -> None:
-        result = remove_array_items(RUFF_TEXT, "tool.ruff.lint", "ignore", {"D203"})
+        result = remove_array_items(
+            RUFF_TEXT, "tool.ruff.lint", "ignore", {"D203"}
+        )
         assert 'ignore = ["D105"]' in result
 
     def test_remove_items_ignores_brackets_inside_strings(self) -> None:
@@ -196,7 +208,10 @@ class TestKeyEdits:
         assert tomllib.loads(result)["t"] == {"k": ["a]"], "after": 1}
 
     def test_remove_items_leaves_text_when_absent(self) -> None:
-        assert remove_array_items(RUFF_TEXT, "tool.ruff", "absent", {"E"}) == RUFF_TEXT
+        assert (
+            remove_array_items(RUFF_TEXT, "tool.ruff", "absent", {"E"})
+            == RUFF_TEXT
+        )
         assert (
             remove_array_items(RUFF_TEXT, "tool.ruff.lint", "ignore", {"X"})
             == RUFF_TEXT

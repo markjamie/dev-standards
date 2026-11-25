@@ -1,1 +1,1 @@
-"""Apply the dev-standards templates to a repo and report where it still differs."""
+"""Apply the dev-standards templates to a repo and report any gaps."""

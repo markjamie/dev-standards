@@ -23,7 +23,7 @@ def normalise(requirement: str) -> str:
 
 
 def group_entries(groups: Groups, name: str) -> tuple[set[str], set[str]]:
-    """Return a group's own (normalised package names, included group names)."""
+    """Return a group's own (normalised package names, included groups)."""
     packages: set[str] = set()
     includes: set[str] = set()
     for entry in groups.get(name, []):
@@ -43,7 +43,7 @@ def resolved_packages(groups: Groups, name: str) -> set[str]:
 
 
 def _requirements_by_name(groups: Groups) -> dict[str, str]:
-    """Map each package the repo already lists to its first requirement string."""
+    """Map each package the repo lists to its first requirement string."""
     found: dict[str, str] = {}
     for entries in groups.values():
         for entry in entries:
@@ -53,11 +53,11 @@ def _requirements_by_name(groups: Groups) -> dict[str, str]:
 
 
 def merge(actual: Groups, template: Groups) -> Groups:
-    """Return the repo's groups plus whatever groups, tools and includes they lack.
+    """Return the repo's groups plus any groups, tools and includes they lack.
 
-    Existing entries are kept. A tool the repo already lists in another group is added
-    with the repo's version bound, not the template's, and a tool already reachable
-    through an included group is not added again.
+    Existing entries are kept. A tool the repo already lists in another group
+    is added with the repo's version bound, not the template's, and a tool
+    already reachable through an included group is not added again.
     """
     merged = {name: list(entries) for name, entries in actual.items()}
     known = _requirements_by_name(actual)

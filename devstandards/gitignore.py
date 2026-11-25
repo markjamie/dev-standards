@@ -18,10 +18,16 @@ def _patterns(text: str) -> list[str]:
 
 def missing_entries(root: Path) -> list[str]:
     """List template patterns the repo's .gitignore lacks."""
-    # "x" and "x/" both ignore a directory named x, so treat them as the same entry.
-    present = {line.rstrip("/") for line in _patterns(read_text(root / GITIGNORE_FILE))}
+    # "x" and "x/" both ignore a directory named x, so treat them as the same
+    # entry.
+    present = {
+        line.rstrip("/")
+        for line in _patterns(read_text(root / GITIGNORE_FILE))
+    }
     template = (TEMPLATES_DIR / GITIGNORE_FILE).read_text(encoding="utf-8")
-    return [line for line in _patterns(template) if line.rstrip("/") not in present]
+    return [
+        line for line in _patterns(template) if line.rstrip("/") not in present
+    ]
 
 
 def merge(root: Path) -> None:
@@ -33,5 +39,7 @@ def merge(root: Path) -> None:
     destination = root / GITIGNORE_FILE
     block = "\n".join([HEADER, *missing])
     existing = read_text(destination).rstrip()
-    destination.write_text(f"{existing}\n\n{block}\n".lstrip(), encoding="utf-8")
+    destination.write_text(
+        f"{existing}\n\n{block}\n".lstrip(), encoding="utf-8"
+    )
     LOGGER.info("%s: added %s", GITIGNORE_FILE, " ".join(missing))

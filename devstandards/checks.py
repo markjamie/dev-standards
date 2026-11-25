@@ -1,7 +1,7 @@
 """Find every gap between a repo and the standard.
 
-Each check yields one message per gap. Checks only read, so they run both after the
-templates are applied and on their own with --check.
+Each check yields one message per gap. Checks only read, so they run both after
+the templates are applied and on their own with --check.
 """
 
 import re
@@ -31,7 +31,12 @@ from devstandards.layout import (
     render_for_repo,
     render_template,
 )
-from devstandards.toml_text import lookup, lookup_list, lookup_table, split_sections
+from devstandards.toml_text import (
+    lookup,
+    lookup_list,
+    lookup_table,
+    split_sections,
+)
 
 # Template settings that are the standard itself.
 # Numbers are minimums; other values must match exactly.
@@ -79,7 +84,9 @@ def load_state(root: Path, checkout: str) -> RepoState:
     package = package_name(root, pyproject)
     template_text = render_template(PYPROJECT_TEMPLATE, checkout, package)
     template = tomllib.loads(template_text)
-    return RepoState(root, checkout, package, pyproject, template_text, template)
+    return RepoState(
+        root, checkout, package, pyproject, template_text, template
+    )
 
 
 def check_pyproject_tables(state: RepoState) -> Iterator[str]:
@@ -93,10 +100,16 @@ def check_ruff(state: RepoState) -> Iterator[str]:
     """Report ruff config that would stop the shared rules applying in full."""
     expected = lookup(state.template, "tool.ruff.extend")
     if lookup(state.pyproject, "tool.ruff.extend") != expected:
-        yield f'add extend = "{expected}" to [tool.ruff] to apply the shared rules'
+        yield (
+            f'add extend = "{expected}" to [tool.ruff] to apply the shared '
+            f"rules"
+        )
     for key in ("tool.ruff.select", "tool.ruff.lint.select"):
         if lookup(state.pyproject, key) is not None:
-            yield f"{key} replaces the shared rule list: use extend-select instead"
+            yield (
+                f"{key} replaces the shared rule list: use extend-select "
+                f"instead"
+            )
     wanted = lookup_table(state.template, PER_FILE_IGNORES)
     present = lookup_table(state.pyproject, PER_FILE_IGNORES)
     for path in wanted:
@@ -114,14 +127,20 @@ def check_ruff_redundancy(state: RepoState) -> Iterator[str]:
 def check_ruff_ignores(state: RepoState) -> Iterator[str]:
     """Report repo-wide ruff ignores that AGENTS.md does not justify."""
     agents = read_text(state.root / AGENTS_FILE)
-    codes = ruff_config.repo_wide_ignores(state.pyproject, ruff_config.load_shared())
+    codes = ruff_config.repo_wide_ignores(
+        state.pyproject, ruff_config.load_shared()
+    )
     unrecorded = [
-        code for code in codes if not re.search(rf"\b{re.escape(code)}\b", agents)
+        code
+        for code in codes
+        if not re.search(rf"\b{re.escape(code)}\b", agents)
     ]
     if unrecorded:
         yield (
-            f"ruff ignores {', '.join(unrecorded)} in every file: fix the code, use "
-            f"per-file-ignores or a targeted noqa, or give the reason in {AGENTS_FILE}"
+            f"ruff ignores {', '.join(unrecorded)} in every file: fix the "
+            f"code, use "
+            f"per-file-ignores or a targeted noqa, or give the reason in "
+            f"{AGENTS_FILE}"
         )
 
 
@@ -140,7 +159,9 @@ def check_enforced_settings(state: RepoState) -> Iterator[str]:
     for key in ENFORCED_SETTINGS:
         expected = lookup(state.template, key)
         actual = lookup(state.pyproject, key)
-        if isinstance(expected, int | float) and isinstance(actual, int | float):
+        if isinstance(expected, int | float) and isinstance(
+            actual, int | float
+        ):
             if actual < expected:
                 yield (
                     f"{key} is {actual}; the standard is at least {expected} "
@@ -156,28 +177,44 @@ def check_build(state: RepoState) -> Iterator[str]:
     """Report setuptools leftovers, and hatchling settings it cannot infer."""
     for name in SETUPTOOLS_FILES:
         if (state.root / name).exists():
-            yield f"{name} is unused under hatchling: move its contents, then delete it"
+            yield (
+                f"{name} is unused under hatchling: move its contents, then "
+                f"delete it"
+            )
     for table in SETUPTOOLS_TABLES:
         if lookup(state.pyproject, table) is not None:
-            yield f"[{table}] is unused under hatchling: replace it with [tool.hatch]"
-    if lookup(state.pyproject, "build-system.build-backend") != HATCHLING_BACKEND:
+            yield (
+                f"[{table}] is unused under hatchling: replace it with "
+                f"[tool.hatch]"
+            )
+    if (
+        lookup(state.pyproject, "build-system.build-backend")
+        != HATCHLING_BACKEND
+    ):
         return
     dynamic = lookup_list(state.pyproject, "project.dynamic")
-    if "version" in dynamic and lookup(state.pyproject, "tool.hatch.version") is None:
-        yield "project.dynamic includes version: add [tool.hatch.version] to set it"
+    if (
+        "version" in dynamic
+        and lookup(state.pyproject, "tool.hatch.version") is None
+    ):
+        yield (
+            "project.dynamic includes version: add [tool.hatch.version] to "
+            "set it"
+        )
     module = module_name(state.package)
     has_package = (state.root / "src" / module / "__init__.py").exists()
     if not has_package and all(
         lookup(state.pyproject, k) is None for k in HATCH_PACKAGE_KEYS
     ):
         yield (
-            f"hatchling looks for src/{module}/: move the package there, or set "
+            f"hatchling looks for src/{module}/: move the package there, or "
+            f"set "
             "[tool.hatch.build.targets.wheel] packages"
         )
 
 
 def check_dependency_groups(state: RepoState) -> Iterator[str]:
-    """Report dependency groups lacking the tools or includes the template has."""
+    """Report dependency groups lacking the template's tools or includes."""
     expected_groups = lookup_table(state.template, dependency_groups.TABLE)
     actual_groups = lookup_table(state.pyproject, dependency_groups.TABLE)
     if dependency_groups.TABLE not in state.pyproject:
@@ -186,13 +223,23 @@ def check_dependency_groups(state: RepoState) -> Iterator[str]:
         if group not in actual_groups:
             yield f"dependency group '{group}' is missing"
             continue
-        # Includes are compared directly, so a tool missing from an included group is
-        # reported once, against that group, rather than again for every includer.
-        packages, includes = dependency_groups.group_entries(expected_groups, group)
-        missing = packages - dependency_groups.resolved_packages(actual_groups, group)
-        _, actual_includes = dependency_groups.group_entries(actual_groups, group)
+        # Includes are compared directly, so a tool missing from an included
+        # group is reported once, against that group, rather than again for
+        # every includer.
+        packages, includes = dependency_groups.group_entries(
+            expected_groups, group
+        )
+        missing = packages - dependency_groups.resolved_packages(
+            actual_groups, group
+        )
+        _, actual_includes = dependency_groups.group_entries(
+            actual_groups, group
+        )
         if missing:
-            yield f"dependency group '{group}' lacks {', '.join(sorted(missing))}"
+            yield (
+                f"dependency group '{group}' lacks "
+                f"{', '.join(sorted(missing))}"
+            )
         if includes - actual_includes:
             names = ", ".join(sorted(includes - actual_includes))
             yield f"dependency group '{group}' does not include {names}"
@@ -209,16 +256,19 @@ def check_tox_config(state: RepoState) -> Iterator[str]:
         competing.append("pyproject.toml [tool.tox]")
     if competing:
         yield (
-            f"tox reads {' and '.join(competing)} instead of tox.toml: port any "
+            f"tox reads {' and '.join(competing)} instead of tox.toml: port "
+            f"any "
             "repo-specific environments into tox.toml, then remove it"
         )
 
 
-def tox_departures(repo: dict[str, Any], template: dict[str, Any]) -> list[str]:
+def tox_departures(
+    repo: dict[str, Any], template: dict[str, Any]
+) -> list[str]:
     """Return the template settings a repo's tox config changes or drops.
 
-    A repo may add its own environments and append them to env_list, so only what
-    the template sets is compared. Comments and layout are not.
+    A repo may add its own environments and append them to env_list, so only
+    what the template sets is compared. Comments and layout are not.
     """
     departures = [
         key
@@ -239,7 +289,7 @@ def tox_departures(repo: dict[str, Any], template: dict[str, Any]) -> list[str]:
 
 
 def _tox_gaps(text: str, template_text: str, remedy: str) -> Iterator[str]:
-    """Report where tox.toml departs from the template, ignoring repo additions."""
+    """Report where tox.toml departs from the template, ignoring additions."""
     try:
         repo = tomllib.loads(text)
     except tomllib.TOMLDecodeError as error:
@@ -248,17 +298,22 @@ def _tox_gaps(text: str, template_text: str, remedy: str) -> Iterator[str]:
     departures = tox_departures(repo, tomllib.loads(template_text))
     if departures:
         yield (
-            f"{TOX_FILE} differs from the template in {', '.join(departures)}: {remedy}"
+            f"{TOX_FILE} differs from the template in "
+            f"{', '.join(departures)}: {remedy}"
         )
 
 
 def check_template_files(state: RepoState) -> Iterator[str]:
-    """Report copied or managed files that are missing or differ from the template."""
+    """Report managed files that are missing or differ from the template."""
     remedies = dict.fromkeys(COPIED_FILES, "merge by hand, or use --force")
-    remedies |= dict.fromkeys(MANAGED_FILES, "rerun bootstrap.py to replace it")
+    remedies |= dict.fromkeys(
+        MANAGED_FILES, "rerun bootstrap.py to replace it"
+    )
     for name, remedy in remedies.items():
         path = state.root / name
-        expected = render_for_repo(name, state.checkout, state.package, state.pyproject)
+        expected = render_for_repo(
+            name, state.checkout, state.package, state.pyproject
+        )
         if not path.exists():
             yield f"{name} is missing"
         elif name == TOX_FILE:
@@ -290,7 +345,10 @@ def check_agent_files(state: RepoState) -> Iterator[str]:
     if not claude_path.exists():
         yield f"{CLAUDE_FILE} is missing"
     elif read_text(claude_path).split() != [AGENTS_IMPORT]:
-        yield f"move rules from {CLAUDE_FILE} to {AGENTS_FILE}; keep the shim only"
+        yield (
+            f"move rules from {CLAUDE_FILE} to {AGENTS_FILE}; keep the shim "
+            f"only"
+        )
 
 
 def check_python_version_file(state: RepoState) -> Iterator[str]:

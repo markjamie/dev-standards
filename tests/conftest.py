@@ -18,20 +18,24 @@ def new_repo(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def setuptools_repo(tmp_path: Path) -> Path:
-    """An established setuptools repo with its own tox.ini and pinned Pythons."""
+    """An established setuptools repo with its own tox.ini and Python pins."""
     root = write_repo(tmp_path / "repo", SETUPTOOLS_PYPROJECT)
-    (root / "tox.ini").write_text("[tox]\nenv_list = py312\n", encoding="utf-8")
+    (root / "tox.ini").write_text(
+        "[tox]\nenv_list = py312\n", encoding="utf-8"
+    )
     (root / ".python-version").write_text("3.13.1\n3.12.4\n", encoding="utf-8")
     (root / "AGENTS.md").write_text("# Rules\n\nUse pip.\n", encoding="utf-8")
     workflows = root / ".github" / "workflows"
     workflows.mkdir(parents=True)
-    (workflows / "ci.yml").write_text("jobs: {lint: {}, test: {}}\n", encoding="utf-8")
+    (workflows / "ci.yml").write_text(
+        "jobs: {lint: {}, test: {}}\n", encoding="utf-8"
+    )
     return root
 
 
 @pytest.fixture
 def install_standards() -> Callable[[Path], Path]:
-    """Return a function that copies this checkout into a repo as its submodule."""
+    """Return a function copying this checkout into a repo as a submodule."""
 
     def install(root: Path) -> Path:
         destination = root / CHECKOUT

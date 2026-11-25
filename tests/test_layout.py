@@ -19,7 +19,8 @@ def test_render_fills_every_placeholder() -> None:
         "pkg = 'your_package'"
     )
     assert render(text, "vendor/standards", "my-tool") == (
-        "extend = 'vendor/standards/ruff.toml'\nname = 'my-tool'\npkg = 'my_tool'"
+        "extend = 'vendor/standards/ruff.toml'\nname = 'my-tool'\npkg = "
+        "'my_tool'"
     )
 
 

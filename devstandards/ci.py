@@ -51,7 +51,7 @@ POSTGRES_SERVICE = """\
 
 
 def ci_config(pyproject: dict[str, Any]) -> dict[str, Any]:
-    """Return the repo's CI additions, refusing keys the standard does not know."""
+    """Return the repo's CI additions, refusing keys the standard lacks."""
     raw = lookup(pyproject, CI_TABLE)
     if raw is None:
         return {}
@@ -76,10 +76,14 @@ def render_workflow(template: str, pyproject: dict[str, Any]) -> str:
         return template
     for anchor in (JOB_ANCHOR, TOX_STEP):
         if template.count(anchor) != 1:
-            msg = f"the CI template no longer has exactly one {anchor.strip()!r}"
+            msg = (
+                f"the CI template no longer has exactly one {anchor.strip()!r}"
+            )
             raise BootstrapError(msg)
     job = _services(config.get("services", [])) + _env(config.get("env", {}))
-    steps = _apt(config.get("apt", [])) + _playwright(config.get("playwright", []))
+    steps = _apt(config.get("apt", [])) + _playwright(
+        config.get("playwright", [])
+    )
     return template.replace(JOB_ANCHOR, JOB_ANCHOR + job).replace(
         TOX_STEP, steps + TOX_STEP
     )
@@ -106,7 +110,9 @@ def _services(value: object) -> str:
         match = SERVICE.fullmatch(service)
         if match is None:
             raise _invalid("services", service)
-        blocks.append(POSTGRES_SERVICE.format(tag=match["tag"] or DEFAULT_POSTGRES))
+        blocks.append(
+            POSTGRES_SERVICE.format(tag=match["tag"] or DEFAULT_POSTGRES)
+        )
     if len(blocks) > 1:
         msg = f"[{CI_TABLE}] services: list PostgreSQL once"
         raise BootstrapError(msg)

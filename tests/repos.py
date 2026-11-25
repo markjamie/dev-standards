@@ -19,8 +19,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 """
 
-# An established repo, modelled on nas_sync: setuptools, its own tool settings, and
-# comment banners that must survive the edits.
+# An established repo, modelled on nas_sync: setuptools, its own tool settings,
+# and comment banners that must survive the edits.
 SETUPTOOLS_PYPROJECT = f"""\
 [build-system]
 # setuptools 77 accepts PEP 639 licence fields.
@@ -41,7 +41,11 @@ dependencies = ["pydantic>=2.7.0"]
 [dependency-groups]
 test = ["pytest>=8.3.0", "pytest-cov>=5.0.0"]
 lint = ["interrogate>=1.7.0", "pyright>=1.1.408", "ruff>=0.8.0"]
-dev = [{{ include-group = "test" }}, {{ include-group = "lint" }}, "tox>=4.22.0"]
+dev = [
+    {{ include-group = "test" }},
+    {{ include-group = "lint" }},
+    "tox>=4.22.0",
+]
 
 # ----------------------------------------------------------------------------
 # Setuptools
@@ -70,7 +74,7 @@ fail_under = 90
 testpaths = ["tests"]
 
 [tool.ruff]
-line-length = 88
+line-length = 79
 
 [tool.ruff.lint]
 select = ["E", "F", "A", "PIE"]

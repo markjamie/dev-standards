@@ -1,4 +1,4 @@
-"""Command line: set up a repo to use dev-standards, then report where it differs."""
+"""Command line: set up a repo for dev-standards, then report any gaps."""
 
 import argparse
 import logging
@@ -15,7 +15,9 @@ from devstandards.layout import STANDARDS_DIR
 
 LOGGER = logging.getLogger(__name__)
 
-DESCRIPTION = "Set up a repo to use dev-standards, then report where it still differs."
+DESCRIPTION = (
+    "Set up a repo to use dev-standards, then report where it still differs."
+)
 
 
 @dataclass(frozen=True)
@@ -28,7 +30,7 @@ class Options:
 
 
 def discover_repo(cwd: Path) -> tuple[Path, str]:
-    """Return the git repo containing cwd, and where dev-standards sits inside it."""
+    """Return the git repo containing cwd, and where dev-standards sits."""
     git = shutil.which("git")
     if git is None:
         msg = "git is required but was not found on PATH"
@@ -46,24 +48,35 @@ def discover_repo(cwd: Path) -> tuple[Path, str]:
     try:
         return root, STANDARDS_DIR.relative_to(root).as_posix()
     except ValueError:
-        msg = f"{STANDARDS_DIR} is not inside {root}; add it as a submodule first"
+        msg = (
+            f"{STANDARDS_DIR} is not inside {root}; add it as a submodule "
+            f"first"
+        )
         raise BootstrapError(msg) from None
 
 
 def install_environment(root: Path, uv: str | None) -> list[str]:
-    """Sync the dev environment and install the git hooks; return any problems."""
+    """Sync the dev environment and install git hooks; return any problems."""
     if uv is None:
-        return ["uv not found: install it, then 'uv sync && uv run pre-commit install'"]
+        return [
+            "uv not found: install it, then 'uv sync && uv run pre-commit "
+            "install'"
+        ]
     for argv in ([uv, "sync"], [uv, "run", "pre-commit", "install"]):
         result = subprocess.run(argv, cwd=root, check=False)  # noqa: S603  # fixed argv
         if result.returncode != 0:
             command = " ".join(["uv", *argv[1:]])
-            return [f"'{command}' failed (exit {result.returncode}); fix it and rerun"]
+            return [
+                f"'{command}' failed (exit {result.returncode}); fix it and "
+                f"rerun"
+            ]
     return []
 
 
-def run(root: Path, checkout: str, options: Options, uv: str | None) -> list[str]:
-    """Apply the templates unless checking, then return every outstanding action."""
+def run(
+    root: Path, checkout: str, options: Options, uv: str | None
+) -> list[str]:
+    """Apply the templates unless checking; return every outstanding action."""
     actions: list[str] = []
     if not options.check:
         apply_templates(root, checkout, force=options.force)
@@ -86,15 +99,21 @@ def parse_args(argv: Sequence[str] | None) -> Options:
     """Parse command-line options."""
     parser = argparse.ArgumentParser(description=DESCRIPTION)
     mode = parser.add_mutually_exclusive_group()
-    mode.add_argument("--force", action="store_true", help="overwrite copied files")
+    mode.add_argument(
+        "--force", action="store_true", help="overwrite copied files"
+    )
     mode.add_argument(
         "--check", action="store_true", help="report gaps only; change nothing"
     )
     parser.add_argument(
-        "--no-install", action="store_true", help="skip uv sync and pre-commit install"
+        "--no-install",
+        action="store_true",
+        help="skip uv sync and pre-commit install",
     )
     args = parser.parse_args(argv)
-    return Options(check=args.check, force=args.force, install=not args.no_install)
+    return Options(
+        check=args.check, force=args.force, install=not args.no_install
+    )
 
 
 def main(argv: Sequence[str] | None = None, cwd: Path | None = None) -> int:

@@ -14,7 +14,11 @@ TEMPLATE: dict[str, list[Any]] = {
     "test": ["pytest>=8"],
     "lint": ["ruff>=0.8", "pip-audit>=2.7"],
     "typecheck": ["pyright>=1.1.390"],
-    "dev": [{"include-group": "test"}, {"include-group": "typecheck"}, "pre-commit>=4"],
+    "dev": [
+        {"include-group": "test"},
+        {"include-group": "typecheck"},
+        "pre-commit>=4",
+    ],
 }
 
 
@@ -50,8 +54,14 @@ def test_merge_adds_missing_groups_tools_and_includes() -> None:
     }
     merged = merge(actual, TEMPLATE)
     assert merged["test"] == ["pytest>=8.3"]  # existing bounds are kept
-    assert merged["lint"] == ["ruff>=0.9", "pyright>=1.1.408", "pip-audit>=2.7"]
-    assert merged["typecheck"] == ["pyright>=1.1.408"]  # reuses the repo's bound
+    assert merged["lint"] == [
+        "ruff>=0.9",
+        "pyright>=1.1.408",
+        "pip-audit>=2.7",
+    ]
+    assert merged["typecheck"] == [
+        "pyright>=1.1.408"
+    ]  # reuses the repo's bound
     assert merged["dev"] == [
         {"include-group": "test"},
         {"include-group": "typecheck"},

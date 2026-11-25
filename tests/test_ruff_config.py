@@ -19,7 +19,10 @@ def settings(text: str) -> list[Redundancy]:
 @pytest.mark.parametrize(
     ("text", "expected"),
     [
-        ("[tool.ruff]\nline-length = 88\n", Redundancy("tool.ruff", "line-length")),
+        (
+            "[tool.ruff]\nline-length = 79\n",
+            Redundancy("tool.ruff", "line-length"),
+        ),
         (
             '[tool.ruff]\ntarget-version = "py312"\n',
             Redundancy("tool.ruff", "target-version"),
@@ -73,8 +76,11 @@ def test_describes_whole_settings_and_entries() -> None:
     assert Redundancy("tool.ruff", "line-length").describe() == (
         "tool.ruff.line-length repeats the shared ruff config: remove it"
     )
-    assert Redundancy("tool.ruff.lint", "ignore", ("D203", "D213")).describe() == (
-        "tool.ruff.lint.ignore repeats D203, D213 from the shared rules: remove them"
+    assert Redundancy(
+        "tool.ruff.lint", "ignore", ("D203", "D213")
+    ).describe() == (
+        "tool.ruff.lint.ignore repeats D203, D213 from the shared rules: "
+        "remove them"
     )
 
 

@@ -1,4 +1,4 @@
-"""Where the templates live, which files they map to, and how they are filled in."""
+"""Where templates live, which files they map to, and how they are filled."""
 
 import re
 import tomllib
@@ -12,7 +12,9 @@ from devstandards.toml_text import lookup
 STANDARDS_DIR = Path(__file__).resolve().parent.parent
 TEMPLATES_DIR = STANDARDS_DIR / "templates"
 
-TEMPLATE_CHECKOUT_PATH = ".dev-standards"  # where the templates assume the submodule is
+TEMPLATE_CHECKOUT_PATH = (
+    ".dev-standards"  # where the templates assume the submodule is
+)
 PLACEHOLDER_DASHED = "your-package"
 PLACEHOLDER_MODULE = "your_package"
 
@@ -30,7 +32,8 @@ CLAUDE_FILE = "CLAUDE.md"  # thin shim importing AGENTS.md
 AGENTS_IMPORT = "@AGENTS.md"
 STANDARDS_IMPORT = "@{path}/STANDARDS.md"
 PYPROJECT_FILE = "pyproject.toml"
-# Not named pyproject.toml, so ruff in a consuming repo never loads it as a config.
+# Not named pyproject.toml, so ruff in a consuming repo never loads it as a
+# config.
 PYPROJECT_TEMPLATE = "pyproject.template.toml"
 PYTHON_VERSION_FILE = ".python-version"
 
@@ -44,7 +47,7 @@ def read_text(path: Path) -> str:
 
 
 def read_pyproject(root: Path) -> dict[str, Any]:
-    """Parse the repo's pyproject.toml, which may be absent but not malformed."""
+    """Parse the repo's pyproject.toml: it may be absent, not malformed."""
     try:
         return tomllib.loads(read_text(root / PYPROJECT_FILE))
     except tomllib.TOMLDecodeError as error:
@@ -91,5 +94,5 @@ def render_for_repo(
 
 
 def minor_version(line: str) -> str:
-    """Reduce a patch pin such as 3.12.4 to 3.12; leave anything else unchanged."""
+    """Reduce a patch pin such as 3.12.4 to 3.12; leave anything else as is."""
     return PATCH_PIN.sub(r"\1.\2", line.strip())
