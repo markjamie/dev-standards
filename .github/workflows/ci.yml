@@ -31,3 +31,7 @@ jobs:
       - uses: astral-sh/setup-uv@v10.3.3
       - run: uv tool install tox --with tox-uv
       - run: tox
+        env:
+          # The minimum run repeats the whole test suite, so only the weekly
+          # schedule and manual runs include it. "^$" matches no environment.
+          TOX_SKIP_ENV: ${{ (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && '^$' || '^minimum$' }}
