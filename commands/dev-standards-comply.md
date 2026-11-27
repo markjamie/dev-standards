@@ -67,7 +67,7 @@ If `--dry-run` was given: reset the submodule to `$OLD` (`git submodule update $
 Sort the fixes into two groups:
 
 - **Safe to apply**: mechanical or local changes that don't alter behaviour or the public API (formatting, lint autofixes, type annotations, docstrings, small refactors within one function).
-- **Needs approval**: anything sweeping or behaviour-affecting, such as raising the minimum Python version, changing dependency tooling (e.g. pip to uv), renaming or moving modules, changing public APIs or data models, deleting code, or touching more than about 20 files for a single rule.
+- **Needs approval**: anything sweeping or behaviour-affecting, such as raising the minimum Python version, changing dependency tooling (e.g. pip to uv), renaming or moving modules, changing public APIs or data models, or deleting code. The number of files a single rule touches does not by itself make a change need approval.
 
 Show the user the "Needs approval" list in one message, and apply only the items they approve. Go ahead with the safe group without asking.
 
