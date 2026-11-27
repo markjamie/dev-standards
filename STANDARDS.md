@@ -119,7 +119,7 @@ A task is complete when:
 - Use one group per purpose so each tool installs only what it needs: `test` (pytest and plugins), `lint` (ruff, interrogate, pip-audit, pip-licenses), `typecheck` (pyright) and `docs` where relevant.
 - Add a `dev` group that includes the others (`{include-group = "test"}`, etc.) for a full local environment.
 - Give dependencies sensible lower bounds. Pin exact versions through a lock file, not in `pyproject.toml`.
-- Keep the lower bounds true: the `minimum` tox environment runs the tests with every direct requirement, runtime and test, at its lowest allowed version. When it fails, raise the bound rather than working around the old version.
+- Keep the lower bounds true: the `minimum` tox environment runs the tests with every direct requirement, runtime and test, at its lowest allowed version. When it fails, raise the bound rather than working around the old version. It runs in every local `tox` and in CI's weekly schedule, not on each push or pull request, because it repeats the whole test suite.
 - Use `uv` to manage environments, dependencies and the lock file. Commit `uv.lock`, use `uv sync` to set up an environment, and run `uv lock` after changing dependencies (tox fails on a stale lock).
 - Prefer permissive licences (MIT, BSD, Apache-2.0, PSF). Avoid GPL-family dependencies unless the user has approved them.
 
@@ -155,7 +155,7 @@ A task is complete when:
 
 ## Pre-commit and CI
 - Every repo has a `.pre-commit-config.yaml` running `ruff` (lint and format), `pyright` and `interrogate`, so problems are caught before commit. The hooks are `local` and run through `uv run`, so their versions come from `uv.lock`, as tox's do.
-- CI is a GitHub Actions workflow (`.github/workflows/ci.yml`) that runs `tox` and nothing else, so CI and local runs are identical. CI fails on any tox failure, including the coverage threshold.
+- CI is a GitHub Actions workflow (`.github/workflows/ci.yml`) that runs `tox` and nothing else, so CI and local runs are identical, except that pushes and pull requests skip the `minimum` environment (through `TOX_SKIP_ENV`); the weekly schedule and a manual run include it. CI fails on any tox failure, including the coverage threshold.
 - The workflow is the template: `bootstrap.py` replaces it on every run, so repos have no CI-specific jobs or exceptions. Anything CI should run goes in `tox.toml`.
 - A repo whose tests need services may declare them in `[tool.dev-standards.ci]` in `pyproject.toml`: a PostgreSQL service (`services`), Ubuntu packages (`apt`), Playwright browsers (`playwright`) and job environment variables (`env`). `bootstrap.py` adds only these to the workflow, each value checked against a strict pattern, so CI still runs `tox` and nothing else. The `env` values are throwaway test settings, never secrets. A repo that declares nothing gets the template unchanged.
 
@@ -169,7 +169,7 @@ A task is complete when:
 - Keep generated files, caches, virtual environments and runtime data out of Git. Every repo has a `.gitignore` (the template covers the common cases).
 - Audit dependencies for known vulnerabilities with `pip-audit`. Add it to the `lint` dependency group and run it as a `tox` environment, so CI fails on any known vulnerability.
 - Check licences with `pip-licenses`, also in the `lint` group and run as a `tox` environment. It fails on GPL-family licences, so any exception is a deliberate, recorded decision.
-- Also run the audit on a weekly schedule in CI (the CI workflow's `schedule` trigger runs the full `tox`), so new vulnerabilities are caught even when the code has not changed.
+- Also run the audit on a weekly schedule in CI (the CI workflow's `schedule` trigger runs the full `tox`, the `minimum` environment included), so new vulnerabilities are caught even when the code has not changed.
 - Triage audit failures rather than ignoring them: upgrade the dependency, or if no fix exists, suppress that specific advisory with a comment giving the reason and a review date.
 
 ## Documentation and versioning

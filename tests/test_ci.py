@@ -54,10 +54,13 @@ def test_additions_go_into_the_job_and_before_tox() -> None:
     assert apt < browsers < tox
     assert "libpango-1.0-0 libpangoft2-1.0-0" in lines[apt]
     assert "--only-group test" in lines[browsers]
-    # Everything else is the template, in order.
-    assert [line for line in lines if line in TEMPLATE.splitlines()] == (
-        TEMPLATE.splitlines()
+    # The template is all there, in order; the additions only add lines.
+    remaining = iter(lines)
+    assert all(
+        any(line == template_line for line in remaining)
+        for template_line in TEMPLATE.splitlines()
     )
+    assert len(lines) > len(TEMPLATE.splitlines())
 
 
 def test_postgres_defaults_to_a_current_version() -> None:
@@ -115,3 +118,42 @@ def test_check_reports_a_workflow_missing_its_additions(
         handle.write('\n[tool.dev-standards.ci]\nservices = ["postgres"]\n')
     found = run_checks(load_state(new_repo, CHECKOUT))
     assert any(gap.startswith(f"{CI_WORKFLOW} differs") for gap in found)
+
+
+def _skip_env(workflow: str) -> str:
+    """The TOX_SKIP_ENV expression on the workflow's tox step."""
+    lines = workflow.splitlines()
+    tox = lines.index("      - run: tox")
+    assert lines[tox + 1] == "        env:"
+    (setting,) = [
+        line
+        for line in lines[tox:]
+        if line.strip().startswith("TOX_SKIP_ENV:")
+    ]
+    return setting.split(":", 1)[1].strip()
+
+
+def test_pushes_and_pull_requests_skip_the_minimum_run() -> None:
+    # It repeats the whole test suite; the weekly schedule and a manual run
+    # still include it, so the lower bounds are checked every week.
+    expression = _skip_env(TEMPLATE)
+    assert "'^minimum$'" in expression
+    assert "github.event_name == 'schedule'" in expression
+    assert "github.event_name == 'workflow_dispatch'" in expression
+    # An empty string is falsy in GitHub expressions, so `cond && ''` would
+    # always fall through to the skip; "^$" matches no environment instead.
+    assert "'^$'" in expression
+    assert "&& ''" not in expression
+
+
+def test_additions_keep_the_skip_on_the_tox_step() -> None:
+    assert _skip_env(render_workflow(TEMPLATE, with_ci(FULL))) == _skip_env(
+        TEMPLATE
+    )
+
+
+def test_own_ci_skips_minimum_like_the_template() -> None:
+    own = (
+        Path(__file__).parent.parent / ".github/workflows/ci.yml"
+    ).read_text(encoding="utf-8")
+    assert _skip_env(own) == _skip_env(TEMPLATE)
