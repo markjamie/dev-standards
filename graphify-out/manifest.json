@@ -1,0 +1,206 @@
+{
+  ".github/workflows/ci.yml": {
+    "mtime": 1795870641.4364486,
+    "seen": 1795872368.4112542,
+    "ast_hash": "13c8434a6816dcd7dcdf8be5cf621c01",
+    "semantic_hash": ""
+  },
+  "bootstrap.py": {
+    "mtime": 1795870641.4364486,
+    "seen": 1795872368.411259,
+    "ast_hash": "18c8c55465ef236cb65c7dc59bb99833",
+    "semantic_hash": ""
+  },
+  "devstandards/__init__.py": {
+    "mtime": 1795870641.4364486,
+    "seen": 1795872368.4112606,
+    "ast_hash": "89b048719d0acf99dc23563287e6ea85",
+    "semantic_hash": ""
+  },
+  "devstandards/apply.py": {
+    "mtime": 1795870641.436806,
+    "seen": 1795872368.4112625,
+    "ast_hash": "0b916fdc0c81ee99aa880429dacc9b1f",
+    "semantic_hash": ""
+  },
+  "devstandards/checks.py": {
+    "mtime": 1795870641.436806,
+    "seen": 1795872368.4112637,
+    "ast_hash": "0705fa16891156d0265e7bad2b8913b0",
+    "semantic_hash": ""
+  },
+  "devstandards/ci.py": {
+    "mtime": 1795870641.436806,
+    "seen": 1795872368.4112651,
+    "ast_hash": "d474c1ca2ebc831be60fcf78c94373c1",
+    "semantic_hash": ""
+  },
+  "devstandards/cli.py": {
+    "mtime": 1795870641.436806,
+    "seen": 1795872368.4112663,
+    "ast_hash": "b7a528fe47aea17d03553c0c1f813acd",
+    "semantic_hash": ""
+  },
+  "devstandards/dependency_groups.py": {
+    "mtime": 1795870641.436806,
+    "seen": 1795872368.411269,
+    "ast_hash": "a992cc96da043541040a77467d7e8f93",
+    "semantic_hash": ""
+  },
+  "devstandards/errors.py": {
+    "mtime": 1795870641.436806,
+    "seen": 1795872368.411271,
+    "ast_hash": "fb10b6a2dfa49782a81425140eaa8007",
+    "semantic_hash": ""
+  },
+  "devstandards/gitignore.py": {
+    "mtime": 1795870641.436806,
+    "seen": 1795872368.4112725,
+    "ast_hash": "c201a624c4f330feaae43462d18d0d7d",
+    "semantic_hash": ""
+  },
+  "devstandards/layout.py": {
+    "mtime": 1795870641.436806,
+    "seen": 1795872368.4112737,
+    "ast_hash": "2f848f4910046329fa402e2057a3cd37",
+    "semantic_hash": ""
+  },
+  "devstandards/ruff_config.py": {
+    "mtime": 1795870641.436806,
+    "seen": 1795872368.411275,
+    "ast_hash": "e742c4dfe04dbc16a74cfd97ed85198f",
+    "semantic_hash": ""
+  },
+  "devstandards/toml_text.py": {
+    "mtime": 1795870641.436806,
+    "seen": 1795872368.411276,
+    "ast_hash": "5cb7552c48bfa053400cdee684033886",
+    "semantic_hash": ""
+  },
+  "pyproject.toml": {
+    "mtime": 1795870641.436806,
+    "seen": 1795872368.411277,
+    "ast_hash": "ac858f2cbcbe110a37b5e550b45bdcf5",
+    "semantic_hash": ""
+  },
+  "templates/.github/workflows/ci.yml": {
+    "mtime": 1795870641.437358,
+    "seen": 1795872368.4113002,
+    "ast_hash": "002c73fd3bce2f97fbf053dd36ff8c3b",
+    "semantic_hash": ""
+  },
+  "templates/.pre-commit-config.yaml": {
+    "mtime": 1795870641.437358,
+    "seen": 1795872368.4113028,
+    "ast_hash": "91a0fdacbffdd5ea80eaaac4b108cf4c",
+    "semantic_hash": ""
+  },
+  "tests/conftest.py": {
+    "mtime": 1795870641.437358,
+    "seen": 1795872368.4113045,
+    "ast_hash": "460c226ee09161302bbd626997ca1f4b",
+    "semantic_hash": ""
+  },
+  "tests/repos.py": {
+    "mtime": 1795870641.4375448,
+    "seen": 1795872368.411306,
+    "ast_hash": "b2201eff2fe25208619f2ef6663dcf05",
+    "semantic_hash": ""
+  },
+  "tests/test_apply.py": {
+    "mtime": 1795870641.4375448,
+    "seen": 1795872368.4113073,
+    "ast_hash": "3faa807da3379697d4125e3d23f08878",
+    "semantic_hash": ""
+  },
+  "tests/test_checks.py": {
+    "mtime": 1795870641.4375448,
+    "seen": 1795872368.4113083,
+    "ast_hash": "4aec04f574c8fd5f5b4b8e68b761d427",
+    "semantic_hash": ""
+  },
+  "tests/test_ci.py": {
+    "mtime": 1795870641.4375448,
+    "seen": 1795872368.4113095,
+    "ast_hash": "e9c7293bf4bff139309515638f97f5b3",
+    "semantic_hash": ""
+  },
+  "tests/test_cli.py": {
+    "mtime": 1795870641.4375448,
+    "seen": 1795872368.4113107,
+    "ast_hash": "17fb16a7033ee9854b7b7dc8131ae8f1",
+    "semantic_hash": ""
+  },
+  "tests/test_dependency_groups.py": {
+    "mtime": 1795870641.4375448,
+    "seen": 1795872368.411312,
+    "ast_hash": "ba97bf42d4fdd093406cffc0b325da12",
+    "semantic_hash": ""
+  },
+  "tests/test_gitignore.py": {
+    "mtime": 1795870641.4375448,
+    "seen": 1795872368.4113133,
+    "ast_hash": "456cada4b42e23006900b7845fa99a07",
+    "semantic_hash": ""
+  },
+  "tests/test_layout.py": {
+    "mtime": 1795870641.4375448,
+    "seen": 1795872368.4113142,
+    "ast_hash": "8c0d723ff863ad6d92aa4b48c6cac7d6",
+    "semantic_hash": ""
+  },
+  "tests/test_ruff_config.py": {
+    "mtime": 1795870641.4375448,
+    "seen": 1795872368.4113154,
+    "ast_hash": "5c3daca983735955addae5bb104fda16",
+    "semantic_hash": ""
+  },
+  "tests/test_templates.py": {
+    "mtime": 1795870641.4375448,
+    "seen": 1795872368.4113173,
+    "ast_hash": "6bf1f7ac1193a527707bb3ac2d136a03",
+    "semantic_hash": ""
+  },
+  "tests/test_toml_text.py": {
+    "mtime": 1795870641.4375448,
+    "seen": 1795872368.4113185,
+    "ast_hash": "09c108dd02f0488073eddbb21467f842",
+    "semantic_hash": ""
+  },
+  "README.md": {
+    "mtime": 1795870641.4364486,
+    "seen": 1795872368.4113197,
+    "ast_hash": "e78318610ea428368685456d352de0d2",
+    "semantic_hash": ""
+  },
+  "STANDARDS.md": {
+    "mtime": 1795870641.4364486,
+    "seen": 1795872368.4113212,
+    "ast_hash": "2df173e9d475c28d02ba84ed4a90037b",
+    "semantic_hash": ""
+  },
+  "commands/dev-standards-comply.md": {
+    "mtime": 1795870641.4364486,
+    "seen": 1795872368.4113224,
+    "ast_hash": "03ac0be6a0f8c6092bd9add9381f0178",
+    "semantic_hash": ""
+  },
+  "templates/AGENTS.md": {
+    "mtime": 1795870641.437358,
+    "seen": 1795872368.4113238,
+    "ast_hash": "a0efd17364e8f26df8df44b88a3f32f7",
+    "semantic_hash": ""
+  },
+  "templates/CHANGELOG.md": {
+    "mtime": 1795870641.437358,
+    "seen": 1795872368.411325,
+    "ast_hash": "144d39dd5f5327113e45b47b3933e5fa",
+    "semantic_hash": ""
+  },
+  "templates/CLAUDE.md": {
+    "mtime": 1795870641.437358,
+    "seen": 1795872368.411326,
+    "ast_hash": "5c27369b226fcf2be8a6cfe52224e767",
+    "semantic_hash": ""
+  }
+}
